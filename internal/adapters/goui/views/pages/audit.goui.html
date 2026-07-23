@@ -1,0 +1,79 @@
+<section>
+  <div class="actions" style="margin-bottom:1rem">
+    <h1 style="margin:0;flex:1">Denetim Kayıtları</h1>
+@component("components.export_links", dict "Links" .ExportLinks)
+@endcomponent
+  </div>
+  <p class="muted audit-lead">Sistem genelindeki tüm kritik olaylar: giriş, kullanıcı, ödeme, ayar, RBAC, bildirim ve daha fazlası.</p>
+
+  <div class="card audit-filter-card">
+    <h2>Filtreler</h2>
+    <form class="audit-filter-grid" g-submit="audit.filter">
+      <input type="hidden" name="page" value="1">
+@component("components.input", dict "ID" "action" "Name" "action" "Label" "Aksiyon" "Type" "search" "Value" .Action "Event" "field.action" "Debounce" "150")
+@endcomponent
+@component("components.select", dict "ID" "resource" "Name" "resource" "Label" "Kaynak" "Value" .Resource "Event" "field.resource" "Options" .ResourceOptions)
+@endcomponent
+@component("components.input", dict "ID" "actor" "Name" "actor" "Label" "Aktör" "Type" "search" "Value" .Actor "Event" "field.actor" "Debounce" "150")
+@endcomponent
+@component("components.select", dict "ID" "order" "Name" "order" "Label" "Sıralama" "Value" .Order "Event" "field.order" "Options" .OrderOptions)
+@endcomponent
+@component("components.select", dict "ID" "limit" "Name" "limit" "Label" "Göster" "Value" .Limit "Event" "field.limit" "Options" .LimitOptions)
+@endcomponent
+      <button type="submit">Filtrele</button>
+      <button type="button" class="secondary" g-click="audit.clear">Temizle</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Kayıt Listesi</h2>
+    <table>
+      <thead><tr>
+        <th>Tarih</th><th>Aktör</th><th>Tür</th><th>Aksiyon</th><th>Kaynak</th><th>Kaynak ID</th><th></th>
+      </tr></thead>
+      <tbody>
+@if(not .Items)
+        <tr><td colspan="7">Filtreye uygun denetim kaydı bulunamadı.</td></tr>
+@endif
+@foreach(.Items as $item)
+        <tr data-key="{{ $item.ID }}">
+          <td>{{ $item.CreatedAt }}</td>
+          <td>
+@if($item.ActorEmail)
+            {{ $item.ActorEmail }}
+@elseif($item.ActorID)
+            <code>{{ $item.ActorID }}</code>
+@else
+            —
+@endif
+          </td>
+          <td>
+@if($item.ActorType)
+            <span class="badge muted">{{ $item.ActorType }}</span>
+@else
+            —
+@endif
+          </td>
+          <td><code>{{ $item.Action }}</code></td>
+          <td>{{ $item.Resource }}</td>
+          <td>
+@if($item.ResourceID)
+            <code>{{ $item.ResourceID }}</code>
+@else
+            —
+@endif
+          </td>
+          <td>
+            <div class="table-actions">
+@component("components.detail_button", dict "Href" $item.DetailHref "Label" "Detay")
+@endcomponent
+            </div>
+          </td>
+        </tr>
+@endforeach
+      </tbody>
+    </table>
+@component("components.pagination", dict "Prefix" "audit" "Pages" .Pages)
+@endcomponent
+  </div>
+</section>

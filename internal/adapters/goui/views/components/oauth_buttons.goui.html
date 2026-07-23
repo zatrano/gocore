@@ -1,0 +1,11 @@
+@props(Providers any, DividerLabel string = "veya")
+@if(.Props.Providers)
+<section class="auth-oauth-section" aria-label="OAuth">
+  <div class="oauth-list">
+@foreach(.Props.Providers as $provider)
+    <a data-goui-ignore data-key="{{ $provider.Key }}" class="oauth-btn oauth-btn--{{ $provider.Key }}" href="{{ $provider.Href }}">{!! $provider.Icon !!}<span>{{ $provider.Label }}</span></a>
+@endforeach
+  </div>
+  <div class="auth-oauth-divider" aria-hidden="true"><span></span><strong>{{ .Props.DividerLabel }}</strong><span></span></div>
+</section>
+@endif

@@ -1,0 +1,10 @@
+{
+  "global": {
+    "audit": true,
+    "exclude": ["G101", "G104"]
+  },
+  "exclude-dirs": [
+    "internal/adapters/persistence/postgres/db",
+    "ui"
+  ]
+}

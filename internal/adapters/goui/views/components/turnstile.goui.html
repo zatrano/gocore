@@ -1,0 +1,4 @@
+@props(SiteKey string = "")
+@if(.Props.SiteKey)
+<div class="cf-turnstile" data-sitekey="{{ .Props.SiteKey }}"></div>
+@endif

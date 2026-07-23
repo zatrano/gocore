@@ -1,0 +1,6 @@
+@if(.Notice)
+<div data-app-flash="{{ default "success" .NoticeKind }}" data-app-flash-msg="{{ .Notice }}" hidden></div>
+@endif
+@if(.Error)
+<div data-app-flash="error" data-app-flash-msg="{{ .Error }}" hidden></div>
+@endif

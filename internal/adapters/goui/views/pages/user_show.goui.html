@@ -1,0 +1,67 @@
+<section class="grid two">
+<div class="card">
+<div class="page-header">
+  <h1>{{ .Name }}</h1>
+  <div class="actions"><a href="/dashboard/users">← Kullanıcılara dön</a></div>
+</div>
+<dl>
+<div><dt>E-posta</dt><dd>{{ .Email }}</dd></div>
+<div><dt>Telefon</dt><dd>{{ .Phone }}</dd></div>
+<div><dt>Rol</dt><dd><span class="badge">{{ .Role }}</span></dd></div>
+<div><dt>Durum</dt><dd>{{ .Status }}</dd></div>
+<div><dt>E-posta doğrulama</dt><dd>
+@component("components.badge", dict "Label" .EmailVerifiedLabel "OK" .EmailVerified)
+@endcomponent
+</dd></div>
+<div><dt>MFA</dt><dd>
+@component("components.badge", dict "Label" .MFALabel "OK" .MFAEnabled)
+@endcomponent
+</dd></div>
+<div><dt>Oluşturulma</dt><dd>{{ .CreatedAt }}</dd></div>
+</dl></div>
+
+@if(.ShowManage)
+<div class="card"><h2>Yönetim</h2>
+@if(.Deleted)
+  @if(.CanRestore)
+<p class="muted">Bu kullanıcı yazılımsal olarak silinmiş. Düzenleme yapılamaz; yalnızca geri yüklenebilir.</p>
+  @if(.DeletedAt)
+<p class="muted">Silinme: {{ .DeletedAt }}</p>
+  @endif
+<form g-submit="user.restore"><button type="submit">Geri Yükle</button></form>
+  @endif
+@else
+  @if(.CanActivate)
+<form g-submit="user.activate" class="mb-4"><h3>Aktifleştir</h3><button type="submit">Aktifleştir</button></form>
+  @endif
+  @if(.CanChangeRole)
+<form g-submit="user.change_role" class="mb-4"><h3>Rol</h3>
+@component("components.select", dict "ID" "show-role" "Name" "role" "Label" "Rol" "Options" .RoleOptions "Error" .ErrRole)
+@endcomponent
+<button type="submit">Rolü Güncelle</button></form>
+  @endif
+  @if(.CanChangeProfileAny)
+<form g-submit="user.change_name" class="mb-4"><h3>Ad</h3>
+@component("components.input", dict "ID" "show-name" "Name" "name" "Label" "Ad" "Type" "text" "Value" .ProfileName "Required" true "Error" .ErrName)
+@endcomponent
+<button type="submit">Adı Güncelle</button></form>
+
+<form g-submit="user.change_email" class="mb-4"><h3>E-posta</h3>
+@component("components.input", dict "ID" "show-email" "Name" "email" "Label" "E-posta" "Type" "email" "Value" .ProfileEmail "Required" true "Error" .ErrEmail)
+@endcomponent
+<button type="submit">E-postayı Güncelle</button></form>
+
+<form g-submit="user.change_phone" class="mb-4"><h3>Telefon</h3>
+@component("components.input", dict "ID" "show-phone" "Name" "phone" "Label" "Telefon" "Type" "tel" "Value" .ProfilePhone "Error" .ErrPhone)
+@endcomponent
+<button type="submit">Telefonu Güncelle</button></form>
+  @endif
+  @if(.CanDelete)
+<form g-submit="user.delete" data-confirm="Bu kullanıcı yazılımsal olarak silinecek. Devam edilsin mi?" data-confirm-title="Kullanıcıyı sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç"><h3>Tehlikeli bölge</h3>
+<p class="muted">Bu işlem kullanıcıyı yazılımsal olarak siler.</p>
+<button type="submit" class="danger">Kullanıcıyı Sil</button></form>
+  @endif
+@endif
+</div>
+@endif
+</section>

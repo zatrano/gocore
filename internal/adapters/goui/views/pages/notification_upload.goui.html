@@ -1,0 +1,57 @@
+<section>
+  <div class="card">
+    <div class="page-header">
+      <h1>Dosyadan Toplu Gönderim</h1>
+      <div class="actions"><a href="/dashboard/notifications/bulk">← Liste ile Gönderim</a></div>
+    </div>
+    <p class="muted">Önce şablonu indirip doldurun, ardından CSV veya Excel yükleyin.</p>
+    <div class="actions" style="margin-bottom:1rem">
+@component("components.export_links", dict "Links" .TemplateLinks)
+@endcomponent
+    </div>
+    <form g-submit="notification.upload_send">
+@component("components.select", dict "ID" "channel" "Name" "channel" "Label" "Kanal" "Value" .Channel "Event" "notification.upload_channel" "Options" .ChannelOptions)
+@endcomponent
+      <div class="form-row">
+        <label>CSV veya Excel Dosyası</label>
+@component("components.upload_zone", dict "EventBase" "notification.file" "Accept" ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" "Files" .Files)
+@endcomponent
+      </div>
+
+@if(eq .Channel "sms")
+@component("components.textarea", dict "ID" "body" "Name" "body" "Label" "SMS İçeriği" "Required" true "Value" .Body)
+@endcomponent
+@elseif(eq .Channel "email")
+@component("components.input", dict "ID" "title" "Name" "title" "Label" "Konu" "Required" true "Value" .Title)
+@endcomponent
+@component("components.textarea", dict "ID" "body" "Name" "body" "Label" "İçerik (metin)" "Required" true "Value" .Body)
+@endcomponent
+@component("components.textarea", dict "ID" "html_body" "Name" "html_body" "Label" "HTML İçerik (opsiyonel)" "Value" .HTMLBody)
+@endcomponent
+@else
+@component("components.input", dict "ID" "title" "Name" "title" "Label" "Başlık" "Required" true "Value" .Title)
+@endcomponent
+@component("components.textarea", dict "ID" "body" "Name" "body" "Label" "İçerik" "Required" true "Value" .Body)
+@endcomponent
+@endif
+
+@component("components.select", dict "ID" "locale" "Name" "locale" "Label" "Hedef Dil (yalnızca bu dildeki kullanıcılara)" "Value" .Locale "Options" .LocaleOptions)
+@endcomponent
+      <button type="submit">Yükle ve Gönder</button>
+    </form>
+  </div>
+
+@if(.HasResult)
+  <div class="card">
+    <h2>Gönderim Sonucu</h2>
+    <section class="dashboard-stats">
+@component("components.stat", dict "Icon" "mail" "Label" "Toplam" "Value" .ResultTotal)
+@endcomponent
+@component("components.stat", dict "Icon" "bell" "Label" "Kabul" "Value" .ResultAccepted)
+@endcomponent
+@component("components.stat", dict "Icon" "close" "Label" "Geçersiz" "Value" .ResultInvalid)
+@endcomponent
+    </section>
+  </div>
+@endif
+</section>

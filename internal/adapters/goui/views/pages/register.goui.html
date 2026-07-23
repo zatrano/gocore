@@ -1,0 +1,20 @@
+<section class="auth-card">
+  <h1>{{ .Title }}</h1>
+@component("components.oauth_buttons", dict "Providers" .OAuthProviders "DividerLabel" .OAuthDivider)
+@endcomponent
+  <form g-submit="register.submit" class="stack">
+@component("components.input", dict "ID" "register-name" "Name" "name" "Label" .NameLabel "Type" "text" "Value" .Name "Required" true "Error" .ErrName)
+@endcomponent
+@component("components.input", dict "ID" "register-email" "Name" "email" "Label" .EmailLabel "Type" "email" "Value" .Email "Required" true "Error" .ErrEmail)
+@endcomponent
+@component("components.input", dict "ID" "register-phone" "Name" "phone" "Label" .PhoneLabel "Type" "tel" "Value" .Phone "Required" false "Error" .ErrPhone)
+@endcomponent
+@component("components.input", dict "ID" "register-password" "Name" "password" "Label" .PasswordLabel "Type" "password" "Value" "" "Required" true "Error" .ErrPassword)
+@endcomponent
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
+  </form>
+@component("components.auth_links", dict "Links" .Links "Single" true)
+@endcomponent
+</section>

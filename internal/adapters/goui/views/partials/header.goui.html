@@ -1,0 +1,25 @@
+@if(.Protected)
+<header class="gocore-header shell-panel-topbar">
+  <div class="shell-panel-topbar__start">
+    <button type="button" class="ui-icon-btn mobile-menu-button" data-sidebar-toggle aria-label="{{ .Labels.OpenMenu }}">
+      {{ icon "menu" }}
+    </button>
+    <div class="panel-page-title"><span class="brand-wordmark brand-wordmark--sm">ZATRANO</span><strong>{{ .Title }}</strong></div>
+  </div>
+  <div class="shell-panel-topbar__actions">
+    @include("partials.lang_switch")
+    @include("partials.notif_bell")
+    <button type="button" class="button ui-btn ui-btn--primary ui-btn--sm" g-click="session.logout">{{ .Labels.Logout }}</button>
+  </div>
+</header>
+@else
+<header class="gocore-header"><a class="brand" href="/" aria-label="ZATRANO"><span class="brand-mark">Z</span><span class="brand-wordmark">ZATRANO</span></a><nav>
+  <a href="{{ .ContactPath }}">{{ .Labels.Contact }}</a>
+  @include("partials.lang_switch")
+  @if(.LoggedIn)
+  <a href="/dashboard">{{ .Labels.Dashboard }}</a>
+  @else
+  <a href="/auth/login">{{ .Labels.Login }}</a><a href="/auth/register">{{ .Labels.Register }}</a>
+  @endif
+</nav></header>
+@endif

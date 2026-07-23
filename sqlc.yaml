@@ -1,0 +1,26 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    # Şema, golang-migrate migration dosyalarından okunur (yalnızca .up.sql'ler).
+    schema: "migrations"
+    queries: "db/queries"
+    gen:
+      go:
+        package: "db"
+        out: "internal/adapters/persistence/postgres/db"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
+        emit_exact_table_names: false
+        emit_prepared_queries: false
+        overrides:
+          # UUID'leri google/uuid ile eşle (domain katmanıyla uyumlu).
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "uuid"
+            nullable: true
+            go_type:
+              type: "UUID"
+              import: "github.com/google/uuid"
+              pointer: true

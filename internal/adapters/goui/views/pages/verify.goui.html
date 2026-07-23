@@ -1,0 +1,19 @@
+@if(.Done)
+<section class="auth-card">
+  <p>{{ .RedirectingText }}</p>
+</section>
+@else
+<section class="auth-card">
+  <h1>{{ .Title }}</h1>
+  <p class="muted">{{ .Intro }}</p>
+  <form g-submit="verify.resend" class="stack">
+@component("components.input", dict "ID" "verify-email" "Name" "email" "Label" .EmailLabel "Type" "email" "Value" .Email "Required" true "Error" .ErrEmail)
+@endcomponent
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
+  </form>
+@component("components.auth_links", dict "Links" .Links "Single" true)
+@endcomponent
+</section>
+@endif

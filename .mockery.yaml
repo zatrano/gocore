@@ -1,0 +1,23 @@
+# mockery yapılandırması. `mockery` komutuyla mock'lar üretilir.
+# Portlar (arayüzler) için mock üretilir; testlerde bağımlılıklar izole edilir.
+with-expecter: true
+dir: "internal/mocks/{{.PackagePath}}"
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "mocks"
+filename: "{{.InterfaceName}}.go"
+packages:
+  github.com/zatrano/gocore/internal/domain/user:
+    interfaces:
+      Repository:
+  github.com/zatrano/gocore/internal/application/shared:
+    interfaces:
+      PasswordHasher:
+      EventPublisher:
+      TxManager:
+      Cache:
+      Storage:
+      Mailer:
+  github.com/zatrano/gocore/internal/application/auth:
+    interfaces:
+      TokenIssuer:
+      LoginGuard:

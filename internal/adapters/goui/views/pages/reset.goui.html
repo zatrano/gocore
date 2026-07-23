@@ -1,0 +1,13 @@
+<section class="auth-card">
+  <h1>{{ .Title }}</h1>
+  <form g-submit="reset.submit" class="stack">
+    <input type="hidden" name="token" value="{{ .Token }}">
+@component("components.input", dict "ID" "reset-new-password" "Name" "new_password" "Label" .PasswordLabel "Type" "password" "Value" "" "Required" true "Error" .ErrNewPassword)
+@endcomponent
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
+  </form>
+@component("components.auth_links", dict "Links" .Links "Single" true)
+@endcomponent
+</section>

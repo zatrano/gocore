@@ -1,0 +1,2202 @@
+openapi: 3.1.0
+info:
+  title: ZATRANO API
+  version: "1.0.0"
+  description: |
+    Clean/Hexagonal mimariyle, CQRS ve DDD prensipleriyle inşa edildi. Tüm hatalar RFC 7807 (Problem Details) formatında döner.
+    Başarı yanıtları ve e-posta şablonları Accept-Language / ?lang ile yerelleştirilir.
+
+    **Idempotency:** `POST`/`PUT`/`PATCH`/`DELETE` isteklerinde `Idempotency-Key` başlığı gönderilirse
+    aynı anahtarla yapılan tekrar istekler ilk yanıtın aynısını döner (çift işlem engeli).
+    Web karşılığı: GoUI session/component event koruması ve aynı application use-case idempotency kurallarıdır.
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080
+    description: Yerel geliştirme
+
+tags:
+  - name: auth
+    description: Kimlik doğrulama
+  - name: users
+    description: Kullanıcı yönetimi
+  - name: notifications
+    description: Merkezi bildirim sistemi (uygulama içi okuma/işaretleme, elle ve toplu gönderim)
+  - name: uploads
+    description: Güvenli dosya yükleme (boyut, MIME allowlist, içerik imzası)
+  - name: rbac
+    description: Dinamik rol ve izin yönetimi
+  - name: settings
+    description: Uygulama ayarları (SMS / ödeme sağlayıcı)
+  - name: payments
+    description: 3D Secure tahsilat (iyzico / Moka United)
+  - name: audit
+    description: Denetim kayıtları (güvenlik izi)
+  - name: contacts
+    description: İletişim formu mesajları (admin inbox)
+  - name: realtime
+    description: Genel canlı olay WebSocket (bildirim rozeti vb.; panel/mobil/API)
+  - name: system
+    description: Sağlık ve gözlemlenebilirlik
+
+paths:
+  /livez:
+    get:
+      tags: [system]
+      summary: Liveness probe
+      responses:
+        "200": { description: Süreç ayakta }
+  /readyz:
+    get:
+      tags: [system]
+      summary: Readiness probe (DB kontrolü)
+      responses:
+        "200": { description: Trafiğe hazır }
+        "503": { description: Bağımlılıklar hazır değil }
+  /healthz:
+    get:
+      tags: [system]
+      summary: Process health meta (status, version, uptime). DB için /readyz kullanın.
+      responses:
+        "200": { description: Süreç ayakta; version ve uptime döner }
+  /docs:
+    get:
+      tags: [system]
+      summary: Swagger UI
+      responses:
+        "200": { description: HTML arayüz }
+  /openapi.yaml:
+    get:
+      tags: [system]
+      summary: OpenAPI 3.1 spesifikasyonu
+      responses:
+        "200":
+          description: YAML dosyası
+          content:
+            application/yaml:
+              schema: { type: string }
+
+  /api/v1/ws:
+    get:
+      tags: [realtime]
+      summary: Genel canlı olay WebSocket
+      description: |
+        Upgrade: `Connection: Upgrade` + `Upgrade: websocket`.
+
+        Kimlik (sırayla):
+        - `Authorization: Bearer <access>`
+        - `?access_token=` veya `?token=`
+        - `access_token` cookie (panel same-origin)
+
+        Olaylar JSON text frame:
+        ```json
+        {"type":"inbox.updated","unread_count":3}
+        ```
+        Bağlantı açılışında güncel `inbox.updated` gönderilir. Yalnızca o kullanıcıya push edilir.
+      security:
+        - bearerAuth: []
+      responses:
+        "101":
+          description: Switching Protocols
+        "401":
+          description: Token yok/geçersiz
+        "426":
+          description: Upgrade Required
+
+  /api/v1/contact:
+    post:
+      tags: [public]
+      summary: İletişim formu gönderimi
+      description: |
+        Mesajı veritabanına kaydeder ve CONTACT_RECIPIENT_EMAIL adresine
+        kalıcı outbox üzerinden e-posta kuyruğuna alır. Turnstile (yapılandırılmışsa) zorunludur.
+      parameters:
+        - in: header
+          name: X-Turnstile-Token
+          schema: { type: string }
+          description: Cloudflare Turnstile yanıt token'ı (opsiyonel body alanı da kabul edilir)
+        - in: header
+          name: Idempotency-Key
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, message]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                email: { type: string, format: email }
+                message: { type: string, minLength: 5, maxLength: 2000 }
+                locale: { type: string, example: tr }
+      responses:
+        "201":
+          description: Mesaj alındı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  message: { type: string }
+        "400": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/contacts:
+    get:
+      tags: [contacts]
+      summary: İletişim mesajı listesi
+      description: |
+        Web karşılığı: GET /dashboard/contacts. İzin: contacts:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: unread
+          in: query
+          schema: { type: string, enum: ["1", "true"] }
+          description: Yalnızca okunmamış mesajlar
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, enum: [100, 500, 1000], default: 100 }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        "200": { description: Sayfalanmış iletişim mesajı listesi }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/contacts/{id}:
+    get:
+      tags: [contacts]
+      summary: İletişim mesajı detayı
+      description: |
+        Web karşılığı: GET /dashboard/contacts/{id}. İzin: contacts:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: İletişim mesajı }
+        "404": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/contacts/{id}/read:
+    post:
+      tags: [contacts]
+      summary: Mesajı okundu işaretle
+      description: |
+        Web karşılığı: detay sayfasında okundu işaretle. İzin: contacts:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: Idempotency-Key
+          schema: { type: string }
+      responses:
+        "200": { description: Güncellenmiş mesaj }
+        "404": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Giriş yap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Token çifti
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+        "401":
+          description: Geçersiz kimlik bilgileri veya MFA challenge
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: "#/components/schemas/Problem" }
+                  - { $ref: "#/components/schemas/MFARequiredResponse" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Token yenile
+      responses:
+        "200":
+          description: Yeni token çifti
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Çıkış yap
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Şifre sıfırlama bağlantısı iste (numaralandırmaya karşı jenerik yanıt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ForgotPasswordRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Token ile yeni şifre belirle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResetPasswordRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/verify-email:
+    post:
+      tags: [auth]
+      summary: E-posta adresini doğrula
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/resend-verification:
+    post:
+      tags: [auth]
+      summary: Doğrulama e-postasını yeniden gönder (jenerik yanıt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResendVerificationRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/auth/change-password:
+    post:
+      tags: [auth]
+      summary: Şifre değiştir (mevcut şifreyle; tüm oturumlar iptal edilir)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/mfa/setup:
+    post:
+      tags: [auth]
+      summary: MFA kurulumunu başlat (secret + otpauth URI)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Kurulum bilgisi (yerelleştirilmiş mesaj + veri)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MFASetupResponse" }
+
+  /api/v1/auth/mfa/enable:
+    post:
+      tags: [auth]
+      summary: MFA etkinleştir (kod doğrula)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MFACodeRequest" }
+      responses:
+        "200":
+          description: Başarı mesajı ve yalnızca bir kez gösterilen kurtarma kodları
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MFAEnableResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/mfa/disable:
+    post:
+      tags: [auth]
+      summary: MFA kapat (kod doğrula)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MFACodeRequest" }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/oauth/{provider}:
+    get:
+      tags: [auth]
+      summary: OAuth/SSO akışını başlat (sağlayıcıya yönlendirir)
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string, enum: [google, github] } }
+      responses:
+        "302": { description: Sağlayıcının yetkilendirme sayfasına yönlendirme }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/oauth/{provider}/callback:
+    get:
+      tags: [auth]
+      summary: OAuth/SSO callback (kod → token çifti)
+      parameters:
+        - { name: provider, in: path, required: true, schema: { type: string, enum: [google, github] } }
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Token çifti
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/auth/permissions:
+    get:
+      tags: [auth]
+      summary: Oturum açmış kullanıcının izin listesi
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: İzin listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items: { type: string }
+
+  /api/v1/users:
+    post:
+      tags: [users]
+      summary: Yeni kullanıcı oluştur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201":
+          description: Oluşturulan kullanıcı (yerelleştirilmiş mesaj + veri)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [users]
+      summary: Kullanıcıları listele (sayfa tabanlı sayfalama + filtreleme + sıralama)
+      description: |
+        Varsayılan: `page`/`limit` offset sayfalama (panel ile uyumlu).
+        İsteğe bağlı `cursor` ile keyset sayfalama; yanıtta `next_cursor` dolabilir.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: role, in: query, schema: { type: string }, description: Dinamik rol adı (ör. admin, editor) }
+        - { name: active, in: query, schema: { type: boolean } }
+        - { name: search, in: query, schema: { type: string } }
+        - name: deleted
+          in: query
+          schema: { type: string, enum: ["", only, all], default: "" }
+          description: "Silinme kapsamı: boş = canlı, only = yalnızca silinenler, all = tümü"
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, enum: [100, 500, 1000], default: 100 } }
+        - { name: order, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            Keyset imleci (`next_cursor`). Verildiğinde `page` yok sayılır (page=1);
+            panel offset sayfalaması etkilenmez.
+      responses:
+        "200":
+          description: Sayfalanmış kullanıcı listesi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPage" }
+
+  /api/v1/users/me:
+    get:
+      tags: [users]
+      summary: Kimliği doğrulanmış kullanıcının profili ve izinleri
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Profil + permissions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MeView" }
+
+  /api/v1/users/me/name:
+    patch:
+      tags: [users]
+      summary: Görünen adı güncelle
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+      responses:
+        "200":
+          description: Güncellenmiş profil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/me/email:
+    patch:
+      tags: [users]
+      summary: E-posta adresini güncelle
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { $ref: "#/components/schemas/Email" }
+      responses:
+        "200":
+          description: Güncellenmiş profil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/me/phone:
+    patch:
+      tags: [users]
+      summary: Telefon numarasını güncelle veya kaldır
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { $ref: "#/components/schemas/Phone" }
+      responses:
+        "200":
+          description: Güncellenmiş profil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/me/locale:
+    patch:
+      tags: [users]
+      summary: Kalıcı dil tercihini güncelle
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              properties:
+                locale:
+                  type: string
+                  example: en
+                  description: BCP-47 temel dil kodu (ör. tr, en)
+      responses:
+        "200":
+          description: Güncellenmiş profil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/me/notifications:
+    get:
+      tags: [notifications]
+      summary: Kullanıcının uygulama içi bildirimleri (sayfa tabanlı sayfalama)
+      description: |
+        Merkezi bildirim sisteminin uygulama içi (inapp) türü kalıcı olarak
+        saklanır. Bu uç kimliği doğrulanmış kullanıcının kendi bildirimlerini
+        en yeni önce döner. Bildirim GÖNDERME dışa açık değildir; iç servisler
+        ve domain event'leri Dispatcher üzerinden gönderir.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, required: false, schema: { type: integer, enum: [100, 500, 1000], default: 100 } }
+      responses:
+        "200":
+          description: Bildirim sayfası
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationPage" }
+    delete:
+      tags: [notifications]
+      summary: Tüm bildirimleri sil
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/users/me/notifications/unread-count:
+    get:
+      tags: [notifications]
+      summary: Okunmamış bildirim sayısı
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Okunmamış sayısı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread: { type: integer, example: 3 }
+
+  /api/v1/users/me/notifications/read-all:
+    post:
+      tags: [notifications]
+      summary: Tüm bildirimleri okundu işaretle
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+
+  /api/v1/users/me/notifications/{id}/read:
+    post:
+      tags: [notifications]
+      summary: Bildirimi okundu işaretle
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/me/notifications/{id}:
+    delete:
+      tags: [notifications]
+      summary: Bildirimi sil
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}:
+    get:
+      tags: [users]
+      summary: Kullanıcı getir
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserView" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [users]
+      summary: Kullanıcıyı yazılımsal sil (soft delete, yalnızca admin)
+      description: |
+        Kaydı fiziksel olarak silmez; deleted_at damgalar. Silinen kayıt canlı
+        sorgularda görünmez ve e-postası yeni kayıtlarda yeniden kullanılabilir.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/email:
+    patch:
+      tags: [users]
+      summary: E-posta değiştir (kendi hesabı veya users:email:change:any izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { $ref: "#/components/schemas/Email" }
+      responses:
+        "200":
+          description: Güncellenmiş kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/phone:
+    patch:
+      tags: [users]
+      summary: Telefon numarası değiştir veya kaldır (kendi hesabı veya users:email:change:any izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone: { $ref: "#/components/schemas/Phone" }
+      responses:
+        "200":
+          description: Güncellenmiş kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/name:
+    patch:
+      tags: [users]
+      summary: Görünen adı değiştir (kendi hesabı veya users:email:change:any izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+      responses:
+        "200":
+          description: Güncellenmiş kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/role:
+    patch:
+      tags: [users]
+      summary: Kullanıcı rolünü değiştir (users:role:change izni; oturumlar iptal edilir)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangeRoleRequest" }
+      responses:
+        "200":
+          description: Güncellenmiş kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/restore:
+    post:
+      tags: [users]
+      summary: Yazılımsal silmeyi geri al (yalnızca admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/{id}/activate:
+    post:
+      tags: [users]
+      summary: Kullanıcıyı aktifleştir (yalnızca admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/notifications/send:
+    post:
+      tags: [notifications]
+      summary: Elle tekil bildirim/SMS/e-posta gönder (notifications:send izni)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendNotificationRequest" }
+      responses:
+        "202":
+          description: Gönderildi (yerelleştirilmiş mesaj)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/notifications/bulk:
+    post:
+      tags: [notifications]
+      summary: Toplu gönderim - JSON alıcı listesi (notifications:send izni)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BulkSendRequest" }
+      responses:
+        "202":
+          description: Toplu gönderim kuyruğa alındı + özet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  data: { $ref: "#/components/schemas/BulkResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/notifications/bulk/upload:
+    post:
+      tags: [notifications]
+      summary: CSV/Excel ile toplu gönderim (notifications:send izni)
+      description: >
+        multipart/form-data. Form alanları channel, title, body, html_body, locale;
+        dosya alanı file (.csv veya .xlsx). Dosyanın ilk satırı başlıktır; sütunlar
+        başlık adına göre eşlenir (email/e-posta, phone/telefon, locale/dil).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [channel, body, file]
+              properties:
+                channel: { type: string, enum: [inapp, sms, email] }
+                title: { type: string }
+                body: { type: string }
+                html_body: { type: string }
+                locale: { type: string }
+                file: { type: string, format: binary }
+      responses:
+        "202":
+          description: Toplu gönderim kuyruğa alındı + özet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  data: { $ref: "#/components/schemas/BulkResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/uploads:
+    post:
+      tags: [uploads]
+      summary: Dosya yükle (uploads:create izni)
+      description: >
+        multipart/form-data. Bir veya birden fazla dosya `files` alanıyla gönderilir.
+        Boyut sınırı ve MIME allowlist
+        sunucu yapılandırmasından gelir; içerik magic number ile doğrulanır.
+        Kısmi başarı desteklenir; yanıtta başarılı ve başarısız dosyalar ayrı listelenir.
+        Web karşılığı: `GET/POST /dashboard/uploads`.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items: { type: string, format: binary }
+                  description: Bir veya birden fazla dosya
+      responses:
+        "201":
+          description: Dosya(lar) yüklendi (kısmi başarı olabilir)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadBatchResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rbac/permissions:
+    get:
+      tags: [rbac]
+      summary: İzinleri listele (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: İzin listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items: { $ref: "#/components/schemas/PermissionView" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [rbac]
+      summary: Yeni izin oluştur (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, example: "reports:export" }
+                description: { type: string }
+      responses:
+        "201":
+          description: Oluşturulan izin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rbac/permissions/{name}:
+    patch:
+      tags: [rbac]
+      summary: İzin açıklamasını güncelle (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description: { type: string }
+      responses:
+        "200":
+          description: Güncellenen izin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PermissionView" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rbac/roles:
+    get:
+      tags: [rbac]
+      summary: Rolleri izinleriyle listele (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Rol listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items: { $ref: "#/components/schemas/RoleView" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [rbac]
+      summary: Yeni rol oluştur (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateRoleRequest" }
+      responses:
+        "201":
+          description: Oluşturulan rol
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleView" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rbac/roles/{name}:
+    get:
+      tags: [rbac]
+      summary: Tek rolü izinleriyle getir (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Rol
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [rbac]
+      summary: Rol açıklamasını güncelle (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateRoleRequest" }
+      responses:
+        "200":
+          description: Güncellenen rol
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [rbac]
+      summary: Rol sil (sistem/kullanımda değilse; rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Yerelleştirilmiş başarı mesajı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/rbac/roles/{name}/permissions:
+    put:
+      tags: [rbac]
+      summary: Rolün izin kümesini değiştir (rbac:manage izni)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetPermissionsRequest" }
+      responses:
+        "200":
+          description: Güncellenen rol
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleView" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/users/create:
+    post:
+      tags: [users]
+      summary: Ayrıcalıklı kullanıcı oluştur (admin; users:list izni)
+      description: |
+        Web karşılığı: `/dashboard/users` GoUI. Public kayıt web'de `/auth/register`, API'de `POST /api/v1/users` — her ikisi de `user` rolü atar;
+        bu uç istenen rolü atayabilir (rol `/api/v1/rbac/roles` ile doğrulanır).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCreateRequest" }
+      responses:
+        "201":
+          description: Oluşturulan kullanıcı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserViewWithMessage" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/settings/sms:
+    get:
+      tags: [settings]
+      summary: SMS sağlayıcı listesi (notifications:settings izni)
+      description: |
+        Entegre SMS sağlayıcıları (netgsm, iletimerkezi) ve yapılandırma durumu.
+        Web karşılığı: GET /dashboard/settings/sms (liste + satırdan aktifleştirme).
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Sağlayıcı listesi ve aktif seçim
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SMSProviderListView" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [settings]
+      summary: SMS sağlayıcı seçimi (API; isteğe bağlı aktifleştirme)
+      description: |
+        JSON istemcileri için sağlayıcı detayı döner; `set_active: true` ile aktif seçim yapılır.
+        Web arayüzü `POST /dashboard/settings/sms/{provider}` kullanır (liste/detay).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SelectSMSProviderRequest" }
+      responses:
+        "201":
+          description: Seçilen sağlayıcı detayı
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: "#/components/schemas/SMSProviderDetailView" }
+                  - allOf:
+                      - { $ref: "#/components/schemas/MessageResponse" }
+                      - type: object
+                        properties:
+                          data: { $ref: "#/components/schemas/SMSProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/settings/sms/{provider}:
+    get:
+      tags: [settings]
+      summary: SMS sağlayıcı detayı (notifications:settings izni)
+      description: "Web karşılığı: GET /dashboard/settings/sms/{provider}"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [netgsm, iletimerkezi] }
+      responses:
+        "200":
+          description: Sağlayıcı detayı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SMSProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [settings]
+      summary: Aktif SMS sağlayıcısını güncelle (notifications:settings izni)
+      description: "Web karşılığı: POST /dashboard/settings/sms/{provider}"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [netgsm, iletimerkezi] }
+      responses:
+        "200":
+          description: Güncellenmiş sağlayıcı
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/MessageResponse" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/SMSProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/settings/payment:
+    get:
+      tags: [settings]
+      summary: Ödeme sağlayıcı listesi (notifications:settings izni)
+      description: |
+        Entegre ödeme sağlayıcıları (iyzico, moka) ve yapılandırma durumu.
+        Web karşılığı: GET /dashboard/settings/payment (liste + satırdan aktifleştirme).
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Sağlayıcı listesi ve aktif seçim
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentProviderListView" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [settings]
+      summary: Ödeme sağlayıcı seçimi (API; isteğe bağlı aktifleştirme)
+      description: |
+        JSON istemcileri için sağlayıcı detayı döner; `set_active: true` ile aktif seçim yapılır.
+        Web arayüzü `POST /dashboard/settings/payment/{provider}` kullanır (liste/detay).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SelectPaymentProviderRequest" }
+      responses:
+        "201":
+          description: Seçilen sağlayıcı detayı
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: "#/components/schemas/PaymentProviderDetailView" }
+                  - allOf:
+                      - { $ref: "#/components/schemas/MessageResponse" }
+                      - type: object
+                        properties:
+                          data: { $ref: "#/components/schemas/PaymentProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/settings/payment/{provider}:
+    get:
+      tags: [settings]
+      summary: Ödeme sağlayıcı detayı (notifications:settings izni)
+      description: "Web karşılığı: GET /dashboard/settings/payment/{provider}"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [iyzico, moka] }
+      responses:
+        "200":
+          description: Sağlayıcı detayı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [settings]
+      summary: Aktif ödeme sağlayıcısını güncelle (notifications:settings izni)
+      description: "Web karşılığı: POST /dashboard/settings/payment/{provider}"
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [iyzico, moka] }
+      responses:
+        "200":
+          description: Güncellenmiş sağlayıcı
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/MessageResponse" }
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/PaymentProviderDetailView" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/bin-check:
+    post:
+      tags: [payments]
+      summary: Kart BIN sorgusu (aktif sağlayıcı)
+      description: |
+        Web karşılığı: `POST /dashboard/payments/bin-check` (CSRF + cookie oturumu).
+        Aktif sağlayıcı `iyzico` ise taksit detayları; `moka` ise kart/banka bilgisi döner.
+        İzin: `payments:charge`
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BinCheckRequest" }
+      responses:
+        "200":
+          description: BIN sorgu sonucu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BinCheckResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/calc-amount:
+    post:
+      tags: [payments]
+      summary: Moka taksit tutarı hesaplama (DoCalcPaymentAmount)
+      description: |
+        Aktif sağlayıcı `moka` olmalıdır. Web karşılığı: POST /dashboard/payments/calc-amount.
+        İzin: payments:charge
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CalcPaymentAmountRequest" }
+      responses:
+        "200":
+          description: Hesaplanan tutar
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CalcPaymentAmountResult" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/transactions:
+    get:
+      tags: [payments]
+      summary: Ödeme listesi (tüm sağlayıcılar)
+      description: |
+        Web karşılığı: GET /dashboard/payments/transactions. İzin: payments:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, success, failed] }
+        - name: provider
+          in: query
+          schema: { type: string, enum: [iyzico, moka] }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, enum: [100, 500, 1000], default: 100 }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        "200":
+          description: Sayfalanmış ödeme listesi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentPage" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/audit/logs:
+    get:
+      tags: [audit]
+      summary: Denetim kaydı listesi
+      description: |
+        Web karşılığı: GET /dashboard/audit/logs. İzin: audit:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: resource
+          in: query
+          schema: { type: string }
+        - name: actor
+          in: query
+          description: Aktör e-postası (kısmi) veya kullanıcı UUID
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, enum: [100, 500, 1000], default: 100 }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        "200":
+          description: Sayfalanmış denetim kaydı listesi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditLogPage" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/audit/logs/{id}:
+    get:
+      tags: [audit]
+      summary: Denetim kaydı detayı
+      description: |
+        Web karşılığı: GET /dashboard/audit/logs/{id}. İzin: audit:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Denetim kaydı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditLogView" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/transactions/{reference}:
+    get:
+      tags: [payments]
+      summary: Ödeme detayı
+      description: |
+        Web karşılığı: GET /dashboard/payments/transactions/{reference}
+        İzin: payments:charge veya payments:list
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Ödeme kaydı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentView" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/3ds/initialize:
+    post:
+      tags: [payments]
+      summary: 3DS ödeme başlatma (aktif sağlayıcı)
+      description: |
+        Web karşılığı: `/dashboard/payments/checkout` GoUI bileşeninin 3DS event akışıdır.
+        Gövde aktif sağlayıcıya göre değişir (`iyzico` | `moka`).
+        İzin: `payments:charge`
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/IyzicoInit3DSRequest"
+                - $ref: "#/components/schemas/MokaInit3DSRequest"
+      responses:
+        "200":
+          description: Başlatma sonucu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Init3DSResult" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/3ds/auth:
+    post:
+      tags: [payments]
+      summary: 3DS tamamlama / durum
+      description: |
+        Iyzico: callback sonrası auth (manuel çağrı). Moka: ödeme tamamlandıysa özet döner.
+        Web karşılığı: POST /dashboard/payments/3ds/auth
+        İzin: `payments:charge`
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Complete3DSRequest" }
+      responses:
+        "200":
+          description: Tamamlama sonucu
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Complete3DSResult" }
+
+  /api/v1/payments/3ds/callback:
+    post:
+      tags: [payments]
+      summary: 3DS callback (public)
+      description: |
+        Iyzico ve Moka banka yönlendirmesi. Kimlik doğrulama yok.
+        Kanonik uç (ThreeDSService varsayılan CallbackURL). Yanıt: HTML sonuç sayfası.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: { type: string }
+      responses:
+        "200":
+          description: HTML sonuç sayfası
+          content:
+            text/html:
+              schema: { type: string }
+
+  /api/v1/payments/webhook/iyzico:
+    post:
+      tags: [payments]
+      summary: Iyzico webhook (public, imzalı)
+      description: |
+        Merchant panelinde bu URL kaydedilir. X-IYZ-SIGNATURE-V3 ile doğrulanır.
+        Kanonik uç: POST /api/v1/payments/webhook/iyzico.
+      parameters:
+        - name: X-IYZ-SIGNATURE-V3
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IyzicoWebhookPayload" }
+      responses:
+        "200":
+          description: Bildirim onaylandı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IyzicoWebhookResult" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: |
+        İsteğin tekrarlanmasında çift yan etkiyi önler. Aynı anahtar + aynı gövde → ilk HTTP yanıtı döner.
+        Önerilen format: UUID veya iş mantığı anahtarı (sipariş no vb.).
+      schema:
+        type: string
+        maxLength: 255
+
+  responses:
+    Problem:
+      description: RFC 7807 hata yanıtı
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    ListPageMeta:
+      type: object
+      properties:
+        page: { type: integer, minimum: 1, description: Mevcut sayfa numarası (1 tabanlı) }
+        limit: { type: integer, enum: [100, 500, 1000], description: Sayfa başına kayıt sayısı }
+        total: { type: integer, format: int64, description: Filtreye uyan toplam kayıt sayısı }
+        total_pages: { type: integer, minimum: 0, description: Toplam sayfa sayısı }
+        next_cursor:
+          type: string
+          description: Keyset sonraki sayfa imleci (yalnızca doluysa; örn. users listesi)
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      description: Normalize edilmiş küçük harf e-posta (pkg/validation.NormalizeEmail)
+
+    Phone:
+      type: string
+      pattern: '^\+[1-9][0-9]{7,14}$'
+      description: E.164 telefon (pkg/validation.NormalizePhone); boş string telefonu kaldırır
+      example: "+905551112233"
+
+    TurnstileToken:
+      type: string
+      description: Cloudflare Turnstile token (cf-turnstile-response). SEC_TURNSTILE yapılandırıldığında zorunlu.
+
+    LoginRequest:
+      type: object
+      description: İlk adımda email+password; MFA adımında mfa_challenge+mfa_code gönderilir.
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        password: { type: string }
+        mfa_code:
+          type: string
+          description: 6 haneli TOTP veya tek kullanımlık kurtarma kodu
+        mfa_challenge:
+          type: string
+          description: İlk adımın 401 yanıtından alınan, 5 dakika geçerli opak challenge
+        turnstile_token: { $ref: "#/components/schemas/TurnstileToken" }
+      oneOf:
+        - required: [email, password]
+        - required: [mfa_challenge, mfa_code]
+
+    MFARequiredResponse:
+      type: object
+      required: [type, status, detail, mfa_challenge]
+      properties:
+        type: { type: string, example: auth.mfa_required }
+        title: { type: string }
+        status: { type: integer, example: 401 }
+        detail: { type: string }
+        mfa_challenge: { type: string }
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        turnstile_token: { $ref: "#/components/schemas/TurnstileToken" }
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, new_password]
+      properties:
+        token: { type: string }
+        new_password: { type: string, minLength: 8, maxLength: 128 }
+        turnstile_token: { $ref: "#/components/schemas/TurnstileToken" }
+
+    ResendVerificationRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        turnstile_token: { $ref: "#/components/schemas/TurnstileToken" }
+
+    ChangePasswordRequest:
+      type: object
+      required: [old_password, new_password]
+      properties:
+        old_password: { type: string }
+        new_password: { type: string, minLength: 8, maxLength: 128 }
+
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+
+    MFACodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+
+    MFASetupResponse:
+      type: object
+      properties:
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            secret: { type: string, description: Base32 TOTP paylaşılan sırrı }
+            uri: { type: string, description: "otpauth:// URI (QR kod için)" }
+            qr_data_uri: { type: string, description: Lokal üretilmiş PNG QR data URI }
+
+    MFAEnableResponse:
+      type: object
+      properties:
+        message: { type: string }
+        data:
+          type: object
+          properties:
+            recovery_codes:
+              type: array
+              description: Yalnızca bu yanıtta gösterilen tek kullanımlık kurtarma kodları
+              items: { type: string }
+
+    RegisterRequest:
+      type: object
+      required: [email, name, password]
+      properties:
+        email: { $ref: "#/components/schemas/Email" }
+        name: { type: string, minLength: 2, maxLength: 100 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+        phone: { $ref: "#/components/schemas/Phone" }
+        preferred_locale:
+          type: string
+          example: tr
+          description: İsteğe bağlı; boşsa Accept-Language / varsayılan dil kullanılır
+        turnstile_token: { $ref: "#/components/schemas/TurnstileToken" }
+
+    AdminCreateRequest:
+      allOf:
+        - { $ref: "#/components/schemas/RegisterRequest" }
+        - type: object
+          required: [role]
+          properties:
+            role:
+              type: string
+              description: Hedef rol adı. Geçerli değerler GET /api/v1/rbac/roles ile listelenir.
+              example: editor
+
+    IntegrationProviderRow:
+      type: object
+      properties:
+        name: { type: string }
+        label: { type: string }
+        description: { type: string }
+        active: { type: boolean }
+        configured: { type: boolean }
+
+    SMSProviderListView:
+      type: object
+      properties:
+        active_provider: { type: string, enum: [netgsm, iletimerkezi] }
+        providers:
+          type: array
+          items: { $ref: "#/components/schemas/IntegrationProviderRow" }
+        netgsm_configured: { type: boolean }
+        iletimerkezi_configured: { type: boolean }
+
+    SMSProviderDetailView:
+      type: object
+      properties:
+        provider: { $ref: "#/components/schemas/IntegrationProviderRow" }
+        netgsm_configured: { type: boolean }
+        iletimerkezi_configured: { type: boolean }
+
+    SelectSMSProviderRequest:
+      type: object
+      required: [provider]
+      properties:
+        provider: { type: string, enum: [netgsm, iletimerkezi] }
+        set_active: { type: boolean, default: false }
+
+    PaymentProviderListView:
+      type: object
+      properties:
+        active_provider: { type: string, enum: [iyzico, moka] }
+        providers:
+          type: array
+          items: { $ref: "#/components/schemas/IntegrationProviderRow" }
+
+        iyzico_configured: { type: boolean }
+        moka_configured: { type: boolean }
+
+    PaymentProviderDetailView:
+      type: object
+      properties:
+        provider: { $ref: "#/components/schemas/IntegrationProviderRow" }
+
+    SelectPaymentProviderRequest:
+      type: object
+      required: [provider]
+      properties:
+        provider: { type: string, enum: [iyzico, moka] }
+        set_active: { type: boolean, default: false }
+
+    BinCheckRequest:
+      type: object
+      required: [binNumber]
+      properties:
+        locale: { type: string }
+        binNumber: { type: string, minLength: 6, maxLength: 19, description: "İlk 6–8 hane; Moka otomatik 8 haneye keser" }
+        price: { type: string, description: "Iyzico taksit sorgusu için zorunlu; Moka için opsiyonel" }
+
+    BinCheckResult:
+      type: object
+      properties:
+        provider: { type: string, enum: [iyzico, moka] }
+        binNumber: { type: string }
+        price: { type: string }
+        iyzico: { type: object, additionalProperties: true }
+        moka: { type: object, additionalProperties: true }
+
+    PaymentView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        provider: { type: string, enum: [iyzico, moka] }
+        status: { type: string, enum: [pending, success, failed] }
+        status_label: { type: string }
+        stage: { type: string }
+        amount: { type: string }
+        paid_amount: { type: string }
+        currency: { type: string }
+        installment: { type: integer }
+        buyer_name: { type: string }
+        buyer_surname: { type: string }
+        buyer_email: { $ref: "#/components/schemas/Email" }
+        buyer_phone: { $ref: "#/components/schemas/Phone" }
+        card_holder: { type: string }
+        card_display: { type: string }
+        card_association: { type: string }
+        provider_payment_id: { type: string }
+        result_code: { type: string }
+        result_message: { type: string }
+        auth_code: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+
+    PaymentPage:
+      allOf:
+        - { $ref: "#/components/schemas/ListPageMeta" }
+        - type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/PaymentView" }
+
+    AuditLogView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        actor_id: { type: string, format: uuid, nullable: true }
+        actor_email: { type: string, nullable: true }
+        action: { type: string }
+        resource: { type: string }
+        resource_id: { type: string, nullable: true }
+        ip: { type: string, nullable: true }
+        user_agent: { type: string, nullable: true }
+        metadata: { type: object, additionalProperties: true, nullable: true }
+        change_summary: { type: string, nullable: true, description: "Eski → yeni değer özeti (varsa)" }
+        created_at: { type: string }
+
+    AuditLogPage:
+      allOf:
+        - { $ref: "#/components/schemas/ListPageMeta" }
+        - type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/AuditLogView" }
+
+    CalcPaymentAmountRequest:
+      type: object
+      required: [binNumber, orderAmount]
+      properties:
+        binNumber: { type: string, minLength: 6, maxLength: 19 }
+        orderAmount: { type: number, format: double }
+        installmentNumber: { type: integer, minimum: 0, maximum: 12 }
+        currency: { type: string, default: TL }
+        isThreeD: { type: integer, enum: [0, 1], default: 1 }
+        groupRevenueRate: { type: number, format: double }
+        groupRevenueAmount: { type: number, format: double }
+
+    CalcPaymentAmountResult:
+      type: object
+      properties:
+        provider: { type: string, enum: [moka] }
+        moka:
+          type: object
+          properties:
+            PaymentAmount: { type: number }
+            DealerDepositAmount: { type: number }
+            DealerCommissionRate: { type: number }
+            DealerCommissionAmount: { type: number }
+
+    IyzicoWebhookPayload:
+      type: object
+      properties:
+        paymentConversationId: { type: string }
+        merchantId: { type: string }
+        paymentId: { type: string }
+        status: { type: string }
+        iyziReferenceCode: { type: string }
+        iyziEventType: { type: string }
+        iyziEventTime: { type: integer, format: int64 }
+        iyziPaymentId: {}
+        token: { type: string }
+        orderReferenceCode: { type: string }
+        customerReferenceCode: { type: string }
+        subscriptionReferenceCode: { type: string }
+
+    IyzicoWebhookResult:
+      type: object
+      properties:
+        verified: { type: boolean }
+        acknowledged: { type: boolean }
+        reference: { type: string }
+        payment_updated: { type: boolean }
+        status: { type: string }
+        iyzi_reference_code: { type: string }
+
+    IyzicoInit3DSRequest:
+      type: object
+      required: [price, paidPrice, currency, installment, paymentChannel, basketId, paymentGroup, paymentCard, buyer, shippingAddress, billingAddress, basketItems]
+      properties:
+        locale: { type: string }
+        reference: { type: string, description: "İsteğe bağlı; boşsa sunucu üretir" }
+        price: { type: string }
+        paidPrice: { type: string }
+        currency: { type: string }
+        installment: { type: integer }
+        paymentChannel: { type: string }
+        basketId: { type: string }
+        paymentGroup: { type: string }
+        paymentCard: { type: object }
+        buyer: { type: object }
+        shippingAddress: { type: object }
+        billingAddress: { type: object }
+        basketItems: { type: array, items: { type: object } }
+
+    MokaInit3DSRequest:
+      type: object
+      required: [cardHolderFullName, cardNumber, expMonth, expYear, cvcNumber, amount]
+      properties:
+        otherTrxCode: { type: string }
+        cardHolderFullName: { type: string }
+        cardNumber: { type: string }
+        expMonth: { type: string }
+        expYear: { type: string }
+        cvcNumber: { type: string }
+        amount: { type: number, format: double }
+        currency: { type: string, default: TL }
+        installmentNumber: { type: integer, minimum: 0, maximum: 12 }
+        description: { type: string }
+        buyerInformation: { type: object }
+        isPoolPayment: { type: integer }
+        isPreAuth: { type: integer }
+        isTokenized: { type: integer }
+        redirectType: { type: integer }
+
+    Init3DSResult:
+      type: object
+      properties:
+        provider: { type: string, enum: [iyzico, moka] }
+        payment_id: { type: string, format: uuid }
+        reference: { type: string }
+        threeDSHtmlContent: { type: string, description: "Iyzico base64 HTML" }
+        redirectUrl: { type: string, description: "Moka 3DS URL" }
+        codeForHash: { type: string, description: "Moka hash doğrulama" }
+
+    Complete3DSRequest:
+      type: object
+      required: [reference]
+      properties:
+        reference: { type: string }
+
+    Complete3DSResult:
+      type: object
+      properties:
+        provider: { type: string }
+        reference: { type: string }
+        status: { type: string }
+        payment_id: { type: string }
+        auth_code: { type: string }
+        result_code: { type: string }
+        result_message: { type: string }
+        iyzico: { type: object, additionalProperties: true }
+
+    ChangeRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          description: Hedef rol adı. Roller dinamiktir; geçerli değerler /api/v1/rbac/roles ile listelenir.
+          example: editor
+
+    NotificationRecipient:
+      type: object
+      description: Kanal türüne göre ilgili alan kullanılır (inapp→email, sms→phone, email→email).
+      properties:
+        phone: { $ref: "#/components/schemas/Phone" }
+        email:
+          allOf:
+            - { $ref: "#/components/schemas/Email" }
+          description: In-app ve email kanallarında alıcı e-postası.
+        locale: { type: string, example: tr }
+
+    SendNotificationRequest:
+      type: object
+      required: [channel, body]
+      properties:
+        channel: { type: string, enum: [inapp, sms, email] }
+        audience:
+          type: string
+          enum: [one, all]
+          description: "one=tek alıcı (recipient), all=tüm aktif kullanıcılar (inapp/email/sms; SMS'te telefonu olmayanlar atlanır)"
+        recipient: { $ref: "#/components/schemas/NotificationRecipient" }
+        title: { type: string, description: "sms için kullanılmaz" }
+        body: { type: string }
+        html_body: { type: string, description: "yalnızca email; opsiyonel" }
+        locale: { type: string, description: "audience=all: yalnızca bu tercih dilindeki aktif kullanıcılara gider" }
+
+    BulkSendRequest:
+      type: object
+      required: [channel, body, recipients]
+      properties:
+        channel: { type: string, enum: [inapp, sms, email] }
+        title: { type: string }
+        body: { type: string }
+        html_body: { type: string }
+        locale: { type: string, description: "hedef dil; alıcı dili farklıysa locale_mismatch (kayıtlı kullanıcılar için tercih dili esas alınır)" }
+        recipients:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/NotificationRecipient" }
+
+    BulkResult:
+      type: object
+      properties:
+        total: { type: integer, description: "toplam alıcı" }
+        accepted: { type: integer, description: "doğrulamayı geçip kuyruğa alınan" }
+        invalid:
+          type: array
+          items:
+            type: object
+            properties:
+              index: { type: integer }
+              reason: { type: string, example: "notification.phone_required" }
+
+    UploadBatchResult:
+      type: object
+      properties:
+        message: { type: string, example: "dosyalar yüklendi" }
+        total: { type: integer, description: "gönderilen dosya sayısı" }
+        accepted: { type: integer, description: "başarıyla yüklenen dosya sayısı" }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/UploadedFileItem" }
+        invalid:
+          type: array
+          items: { $ref: "#/components/schemas/UploadFailedItem" }
+
+    UploadedFileItem:
+      type: object
+      properties:
+        key: { type: string, description: "depolama anahtarı (UUID + güvenli dosya adı)" }
+        filename: { type: string }
+        content_type: { type: string, example: "image/png" }
+        size: { type: integer, format: int64, description: "bayt cinsinden boyut" }
+
+    UploadFailedItem:
+      type: object
+      properties:
+        index: { type: integer }
+        filename: { type: string }
+        reason: { type: string, example: "upload.too_large" }
+        detail: { type: string }
+
+    PermissionView:
+      type: object
+      properties:
+        name: { type: string, example: "users:list" }
+        description: { type: string }
+
+    RoleView:
+      type: object
+      properties:
+        name: { type: string, example: editor }
+        description: { type: string }
+        is_system: { type: boolean }
+        permissions:
+          type: array
+          items: { type: string }
+
+    CreateRoleRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 32, example: editor }
+        description: { type: string, maxLength: 255 }
+        permissions:
+          type: array
+          items: { type: string }
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        description: { type: string, maxLength: 255 }
+
+    SetPermissionsRequest:
+      type: object
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          items: { type: string }
+
+    MeView:
+      allOf:
+        - { $ref: "#/components/schemas/UserView" }
+        - type: object
+          properties:
+            permissions:
+              type: array
+              items: { type: string }
+              description: Rolün sahip olduğu izinler (ör. users:list)
+
+    TokenPair:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_at: { type: string, format: date-time }
+        token_type: { type: string, example: Bearer }
+
+    UserView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { $ref: "#/components/schemas/Email" }
+        phone: { $ref: "#/components/schemas/Phone" }
+        name: { type: string }
+        role: { type: string, description: "Dinamik rol adı (ör. admin, user, editor)" }
+        active: { type: boolean }
+        email_verified: { type: boolean }
+        mfa_enabled: { type: boolean }
+        preferred_locale:
+          type: string
+          example: tr
+          description: Bildirim e-postaları için kalıcı dil tercihi
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        deleted: { type: boolean, description: Yazılımsal olarak silinmiş mi }
+        deleted_at: { type: string, format: date-time, nullable: true }
+
+    UserPage:
+      allOf:
+        - { $ref: "#/components/schemas/ListPageMeta" }
+        - type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/UserView" }
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: Accept-Language / ?lang ile yerelleştirilmiş başarı mesajı
+
+    UserViewWithMessage:
+      type: object
+      required: [message, data]
+      properties:
+        message: { type: string }
+        data: { $ref: "#/components/schemas/UserView" }
+
+    NotificationView:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        content: { type: string }
+        read: { type: boolean }
+        created_at: { type: string, format: date-time }
+        read_at: { type: string, format: date-time, nullable: true }
+
+    NotificationPage:
+      allOf:
+        - { $ref: "#/components/schemas/ListPageMeta" }
+        - type: object
+          properties:
+            items:
+              type: array
+              items: { $ref: "#/components/schemas/NotificationView" }

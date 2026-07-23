@@ -1,0 +1,41 @@
+<section class="grid two">
+<div class="card">
+<div class="page-header">
+  <h1>{{ .RoleName }}</h1>
+  <div class="actions"><a href="/dashboard/rbac/roles">← Rollere dön</a></div>
+</div>
+<dl><div><dt>Rol adı</dt><dd><code>{{ .RoleName }}</code></dd></div><div><dt>Sistem rolü</dt><dd>
+@if(.IsSystem)
+Evet
+@else
+Hayır
+@endif
+</dd></div></dl>
+<form g-submit="role.update" class="mb-4">
+<div class="form-row"><label for="description">Açıklama</label>
+<input id="description" name="description" maxlength="255" value="{{ .Description }}"></div>
+<button type="submit">Açıklamayı Güncelle</button></form>
+@if(.ShowDelete)
+<form g-submit="role.delete" data-confirm="Bu rol kalıcı olarak silinecek. Devam edilsin mi?" data-confirm-title="Rolü sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç">
+<h3>Tehlikeli bölge</h3>
+<p class="muted">Bu işlem rolü kalıcı olarak siler.</p>
+<button type="submit" class="danger">Rolü Sil</button></form>
+@endif
+</div>
+<div class="card"><h2>İzinler</h2>
+<form g-submit="role.set_permissions">
+<div class="actions" style="margin-bottom:1rem">
+<button type="button" class="secondary" g-click="role.select_all">Tümünü Seç</button>
+<button type="button" class="secondary" g-click="role.clear_all">Tümünü Kaldır</button></div>
+<div class="checkbox-list">
+@foreach(.Permissions as $perm)
+<label data-key="{{ $perm.Name }}">
+@if($perm.Selected)
+<input type="checkbox" name="permissions" value="{{ $perm.Name }}" checked> {{ $perm.Name }}
+@else
+<input type="checkbox" name="permissions" value="{{ $perm.Name }}"> {{ $perm.Name }}
+@endif
+</label>
+@endforeach
+</div><button type="submit">İzinleri Kaydet</button></form></div>
+</section>

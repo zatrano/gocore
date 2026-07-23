@@ -1,0 +1,35 @@
+@if(.AuthShell)
+<div class="gocore-shell auth-shell">
+@elseif(.Protected)
+<div class="gocore-shell panel-shell">
+@else
+<div class="gocore-shell">
+@endif
+@if(.Redirect)
+<meta http-equiv="refresh" content="0;url={{ .Redirect }}">
+@endif
+@if(.Protected)
+@include("partials.sidebar")
+<div class="panel-workspace">
+@endif
+@if(.AuthShell)
+<main class="auth-shell-backdrop"><div class="auth-shell-content">
+<div class="auth-shell-top">
+  <a class="auth-brand" href="/" aria-label="ZATRANO"><span class="brand-mark">Z</span><span class="brand-wordmark">ZATRANO</span></a>
+  @include("partials.lang_switch")
+</div>
+@else
+@include("partials.header")
+<main class="gocore-main">
+@endif
+@include("partials.flash")
+{!! .Body !!}
+@if(.AuthShell)
+</div></main>
+@else
+</main>
+@if(.Protected)
+</div>
+@endif
+@endif
+</div>

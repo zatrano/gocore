@@ -1,0 +1,10 @@
+@props(Title string = "")
+<div class="card">
+  @if(.Props.Title)
+  <h2>{{ .Props.Title }}</h2>
+  @endif
+  @if(.Slots.header)
+  <header>{{ .Slots.header }}</header>
+  @endif
+  {!! .DefaultSlot !!}
+</div>

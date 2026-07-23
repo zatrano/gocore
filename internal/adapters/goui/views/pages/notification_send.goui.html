@@ -1,0 +1,70 @@
+<section class="card">
+  <div class="page-header">
+    <h1>Bildirim Gönder</h1>
+    <div class="actions"><a href="/dashboard/notifications/bulk">← Toplu Gönderim</a></div>
+  </div>
+  <p class="muted">«Tüm aktif kullanıcılar» seçildiğinde hedef dil ile tercih dili eşleşenlere gider.</p>
+  <form g-submit="notification.send">
+@component("components.select", dict "ID" "channel" "Name" "channel" "Label" "Kanal" "Value" .Channel "Event" "notification.channel" "Options" .ChannelOptions)
+@endcomponent
+    <div class="form-row">
+      <label for="audience">Alıcı</label>
+      <select id="audience" name="audience" class="form-select" required g-change="notification.audience">
+@if(ne .Audience "all")
+        <option value="one" selected>Tek alıcı</option>
+        <option value="all">Tüm aktif kullanıcılar</option>
+@else
+        <option value="one">Tek alıcı</option>
+        <option value="all" selected>Tüm aktif kullanıcılar</option>
+@endif
+      </select>
+    </div>
+
+@if(ne .Audience "all")
+  @if(eq .Channel "sms")
+    <div class="form-row">
+      <label for="phone">Telefon</label>
+      <input id="phone" name="phone" type="tel" required placeholder="+905xxxxxxxxx" value="{{ .Phone }}">
+@component("components.field_error", dict "Error" .PhoneError)
+@endcomponent
+    </div>
+  @else
+    <div class="form-row">
+      <label for="email">E-posta</label>
+      <input id="email" name="email" type="email" required value="{{ .Email }}">
+@component("components.field_error", dict "Error" .EmailError)
+@endcomponent
+    </div>
+  @endif
+@else
+  @if(eq .Channel "sms")
+    <p class="muted">Mesaj, telefonu kayıtlı tüm aktif kullanıcılara gönderilir. Telefonu olmayanlar atlanır.</p>
+  @else
+    <p class="muted">Mesaj, sistemdeki tüm aktif kullanıcılara (kendi tercih diline göre) gönderilir.</p>
+  @endif
+@endif
+
+@if(eq .Channel "inapp")
+@component("components.input", dict "ID" "title" "Name" "title" "Label" "Başlık" "Required" true "Value" .Title)
+@endcomponent
+    <div class="form-row">
+      <label for="body">İçerik</label>
+      <textarea id="body" name="body" required g-input="notification.body" g-debounce="200">{{ .Body }}</textarea>
+    </div>
+@elseif(eq .Channel "email")
+@component("components.input", dict "ID" "title" "Name" "title" "Label" "Konu" "Required" true "Value" .Title)
+@endcomponent
+@component("components.textarea", dict "ID" "body" "Name" "body" "Label" "İçerik (metin)" "Required" true "Value" .Body)
+@endcomponent
+@component("components.textarea", dict "ID" "html_body" "Name" "html_body" "Label" "HTML İçerik (opsiyonel)" "Value" .HTMLBody)
+@endcomponent
+@else
+@component("components.textarea", dict "ID" "body" "Name" "body" "Label" "SMS İçeriği" "Required" true "Value" .Body)
+@endcomponent
+@endif
+
+@component("components.select", dict "ID" "locale" "Name" "locale" "Label" "Hedef dil (yalnızca bu dildeki kullanıcılara)" "Value" .Locale "Options" .LocaleOptions)
+@endcomponent
+    <button type="submit">Gönder</button>
+  </form>
+</section>

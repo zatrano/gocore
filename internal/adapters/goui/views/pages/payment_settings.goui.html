@@ -1,0 +1,30 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">Ödeme Ayarları</h1></div>
+<p class="muted">Aktif sağlayıcı: <strong>{{ .Active }}</strong></p>
+<div class="card"><h2>Sağlayıcı Listesi</h2>
+<table><thead><tr>
+<th>Sağlayıcı</th><th>Açıklama</th><th>Durum</th><th>Yapılandırma</th><th></th></tr></thead><tbody>
+@foreach(.Providers as $row)
+<tr data-key="{{ $row.Name }}"><td>{{ $row.Label }}</td><td>{{ $row.Description }}</td><td>
+@if($row.Active)
+Aktif
+@else
+Pasif
+@endif
+</td><td>
+@if($row.Configured)
+Hazır
+@else
+Eksik
+@endif
+</td><td>
+<div class="table-actions">
+@component("components.detail_button", dict "Href" $row.DetailHref "Label" "Detay")
+@endcomponent
+@if($row.ShowActivate)
+<form g-submit="payment.activate" class="table-action-form"><input type="hidden" name="provider" value="{{ $row.Name }}"><button type="submit" class="secondary sm">Aktif Yap</button></form>
+@endif
+</div>
+</td></tr>
+@endforeach
+</tbody></table></div></section>

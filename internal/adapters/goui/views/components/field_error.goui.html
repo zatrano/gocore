@@ -1,0 +1,4 @@
+@props(Error string = "")
+@if(.Props.Error)
+<p class="field-error" role="alert">{{ .Props.Error }}</p>
+@endif

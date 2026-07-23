@@ -1,0 +1,33 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">Kullanıcılar</h1>
+@component("components.export_links", dict "Links" .ExportLinks)
+@endcomponent
+<a class="button" href="/dashboard/users/new">Yeni Kullanıcı</a></div>
+
+<div class="card users-filter-card"><h2>Filtreler</h2><div class="users-filter-grid">
+<div class="form-row users-filter-search"><label for="users-search">Ara</label><input id="users-search" name="search" type="search" placeholder="Ad veya e-posta ara" value="{{ .Search }}" g-input="users.search" g-debounce="300"></div>
+<div class="form-row users-filter-role"><label for="users-role">Rol</label><input id="users-role" name="role" type="text" placeholder="Tüm roller" value="{{ .Role }}" g-change="users.role" g-input="users.role" g-debounce="300"></div>
+@component("components.select", dict "ID" "users-deleted" "Name" "deleted" "Label" "Kayıt durumu" "Options" .DeletedOptions "Event" "users.deleted")
+@endcomponent
+@component("components.select", dict "ID" "users-limit" "Name" "limit" "Label" "Göster" "Options" .LimitOptions "Event" "users.limit")
+@endcomponent
+<button type="button" class="secondary users-filter-clear" g-click="users.clear">Temizle</button>
+</div></div>
+
+<div class="card"><h2>Kullanıcı Listesi</h2>
+@if(.Empty)
+<p class="muted">Kayıt bulunamadı.</p>
+@else
+<table><thead><tr><th>Ad</th><th>E-posta</th><th>Rol</th><th>Durum</th><th></th></tr></thead><tbody>
+@foreach(.Items as $item)
+<tr data-key="{{ $item.ID }}"><td>{{ $item.Name }}</td><td>{{ $item.Email }}</td><td>{{ $item.Role }}</td><td>{{ $item.Status }}</td><td>
+<div class="table-actions">
+@component("components.detail_button", dict "Href" $item.DetailHref "Label" "Detay")
+@endcomponent
+</div></td></tr>
+@endforeach
+</tbody></table>
+@endif
+@component("components.pagination", dict "Prefix" "users" "Pages" .Pages)
+@endcomponent
+</div></section>

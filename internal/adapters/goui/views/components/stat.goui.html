@@ -1,0 +1,11 @@
+@props(Icon string, Label string, Value string, Hint string = "")
+<div class="stat">
+  <span class="stat-icon">{{ icon .Props.Icon }}</span>
+  <div>
+    <span class="muted">{{ .Props.Label }}</span>
+    <strong>{{ .Props.Value }}</strong>
+    @if(.Props.Hint)
+    <p class="muted">{{ .Props.Hint }}</p>
+    @endif
+  </div>
+</div>

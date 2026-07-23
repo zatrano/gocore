@@ -1,0 +1,19 @@
+@props(ID string, Name string, Label string, Value string = "", Event string = "", Options any, Error string = "")
+<div class="form-row">
+  <label for="{{ .Props.ID }}">{{ .Props.Label }}</label>
+@if(.Props.Event)
+  <select id="{{ .Props.ID }}" name="{{ .Props.Name }}" class="form-select" g-change="{{ .Props.Event }}">
+@else
+  <select id="{{ .Props.ID }}" name="{{ .Props.Name }}" class="form-select">
+@endif
+@foreach(.Props.Options as $opt)
+  @if($opt.Selected)
+    <option value="{{ $opt.Value }}" selected>{{ $opt.Label }}</option>
+  @else
+    <option value="{{ $opt.Value }}">{{ $opt.Label }}</option>
+  @endif
+@endforeach
+  </select>
+@component("components.field_error", dict "Error" .Props.Error)
+@endcomponent
+</div>

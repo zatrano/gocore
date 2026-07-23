@@ -1,0 +1,23 @@
+# Frontend build (web/)
+web/node_modules/
+web/.css-build/
+
+/bin/
+*.exe
+*.out
+coverage.html
+
+# Ortam ve secret'lar
+.env
+*.local
+
+# Yerel veri
+/storage-data/
+
+# IDE
+.idea/
+.vscode/
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db

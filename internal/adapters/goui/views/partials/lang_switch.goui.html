@@ -1,0 +1,10 @@
+<label class="lang-switch" data-goui-ignore><span class="sr-only">Dil</span>
+<select class="lang-switch__select" aria-label="Dil seçimi" data-lang-select data-goui-ignore>
+@foreach(.Locales as $locale)
+@if($locale.Selected)
+  <option value="{{ $locale.Code }}" selected>{{ $locale.Label }}</option>
+@else
+  <option value="{{ $locale.Code }}">{{ $locale.Label }}</option>
+@endif
+@endforeach
+</select></label>

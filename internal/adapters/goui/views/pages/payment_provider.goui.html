@@ -1,0 +1,36 @@
+<section class="card">
+<div class="page-header">
+  <h1>{{ .Label }}</h1>
+  <div class="actions"><a href="/dashboard/settings/payment">← Ödeme listesine dön</a></div>
+</div>
+<p>{{ .Description }}</p><dl>
+<div><dt>Kod</dt><dd><code>{{ .Name }}</code></dd></div>
+<div><dt>Aktif</dt><dd>
+@if(.Active)
+Evet
+@else
+Hayır
+@endif
+</dd></div><div><dt>Yapılandırılmış</dt><dd>
+@if(.Configured)
+Evet
+@else
+Hayır — önce ortam değişkenlerini tanımlayın
+@endif
+</dd></div></dl>
+<form g-submit="payment.activate">
+<input type="hidden" name="provider" value="{{ .Name }}">
+@if(.Configured)
+  @if(.Active)
+<button type="submit">Aktif Sağlayıcı</button>
+  @else
+<button type="submit">Aktif Sağlayıcı Yap</button>
+  @endif
+@else
+  @if(.Active)
+<button type="submit" disabled>Aktif Sağlayıcı</button>
+  @else
+<button type="submit" disabled>Aktif Sağlayıcı Yap</button>
+  @endif
+@endif
+</form></section>

@@ -1,0 +1,29 @@
+<section class="card">
+<div class="page-header">
+  <h1>Yeni Rol</h1>
+  <div class="actions"><a href="/dashboard/rbac/roles">← Rollere dön</a></div>
+</div>
+<form g-submit="role.create">
+<div class="form-row"><label for="name">Rol Adı</label>
+<input id="name" name="name" required minlength="2" maxlength="32" pattern="[a-z0-9_-]+" value="{{ .Name }}">
+@component("components.field_error", dict "Error" .NameError)
+@endcomponent
+</div>
+<div class="form-row"><label for="description">Açıklama</label>
+<input id="description" name="description" maxlength="255" value="{{ .Description }}"></div>
+<div class="form-section"><div class="form-section__title">İzinler</div>
+<div class="actions" style="margin-bottom:1rem">
+<button type="button" class="secondary" g-click="role.select_all">Tümünü Seç</button>
+<button type="button" class="secondary" g-click="role.clear_all">Tümünü Kaldır</button></div>
+<div class="checkbox-list">
+@foreach(.Permissions as $perm)
+<label data-key="{{ $perm.Name }}">
+@if($perm.Selected)
+<input type="checkbox" name="permissions" value="{{ $perm.Name }}" checked> {{ $perm.Name }}
+@else
+<input type="checkbox" name="permissions" value="{{ $perm.Name }}"> {{ $perm.Name }}
+@endif
+</label>
+@endforeach
+</div></div>
+<button type="submit">Oluştur</button></form></section>

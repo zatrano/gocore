@@ -1,0 +1,23 @@
+<section class="auth-card">
+  <h1>{{ .Title }}</h1>
+  <p class="muted">{{ .Intro }}</p>
+  <form g-submit="contact.submit" class="stack">
+@component("components.input", dict "ID" "contact-name" "Name" "name" "Label" .NameLabel "Type" "text" "Value" .Name "Required" true "Error" .ErrName)
+@endcomponent
+@component("components.input", dict "ID" "contact-email" "Name" "email" "Label" .EmailLabel "Type" "email" "Value" .Email "Required" true "Error" .ErrEmail)
+@endcomponent
+@component("components.textarea", dict "ID" "contact-message" "Name" "message" "Label" .MessageLabel "Value" .Message "Required" true "Error" .ErrMessage)
+@endcomponent
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
+  </form>
+  <aside class="contact-info">
+    <h2>{{ .ReachTitle }}</h2>
+    <ul>
+      <li data-key="email"><dt>{{ .EmailLabel }}</dt><dd><a href="mailto:info@zatrano.com">info@zatrano.com</a></dd></li>
+      <li data-key="phone"><dt>{{ .PhoneLabel }}</dt><dd>+90 000 000 00 00</dd></li>
+      <li data-key="address"><dt>{{ .AddressLabel }}</dt><dd>İstanbul, Türkiye</dd></li>
+    </ul>
+  </aside>
+</section>

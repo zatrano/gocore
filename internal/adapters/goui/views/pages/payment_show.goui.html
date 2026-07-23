@@ -1,0 +1,16 @@
+<section class="card">
+  <div class="page-header">
+    <h1>Ödeme Detayı</h1>
+    <div class="actions"><a href="/dashboard/payments/transactions">← Listeye dön</a></div>
+  </div>
+  <dl>
+@foreach(.Rows as $row)
+@component("components.detail_row", dict "Label" $row.Label "Value" $row.Value)
+@endcomponent
+@endforeach
+  </dl>
+  <form g-submit="payment.complete">
+    <input type="hidden" name="reference" value="{{ .Reference }}">
+    <button type="submit">3DS Tamamla</button>
+  </form>
+</section>

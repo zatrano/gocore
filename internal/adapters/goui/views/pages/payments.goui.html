@@ -1,0 +1,63 @@
+<section>
+  <div class="actions" style="margin-bottom:1rem">
+    <h1 style="margin:0;flex:1">Ödemeler</h1>
+@component("components.export_links", dict "Links" .ExportLinks)
+@endcomponent
+    <a class="button" href="/dashboard/payments/checkout">Yeni Tahsilat</a>
+  </div>
+
+  <div class="card audit-filter-card">
+    <h2>Filtreler</h2>
+    <form class="audit-filter-grid" g-submit="payments.filter">
+      <input type="hidden" name="page" value="1">
+@component("components.select", dict "ID" "status" "Name" "status" "Label" "Durum" "Value" .Status "Event" "field.status" "Options" .StatusOptions)
+@endcomponent
+@component("components.select", dict "ID" "provider" "Name" "provider" "Label" "Sağlayıcı" "Value" .Provider "Event" "field.provider" "Options" .ProviderOptions)
+@endcomponent
+@component("components.select", dict "ID" "order" "Name" "order" "Label" "Sıralama" "Value" .Order "Event" "field.order" "Options" .OrderOptions)
+@endcomponent
+@component("components.select", dict "ID" "limit" "Name" "limit" "Label" "Sayfa başına" "Value" .Limit "Event" "field.limit" "Options" .LimitOptions)
+@endcomponent
+      <button type="submit">Filtrele</button>
+      <button type="button" class="secondary" g-click="payments.clear">Temizle</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Ödeme Listesi</h2>
+    <table>
+      <thead><tr>
+        <th>Referans</th><th>Sağlayıcı</th><th>Durum</th><th>Alıcı</th><th>Tutar</th><th>Taksit</th><th>Kart</th><th>Tarih</th><th></th>
+      </tr></thead>
+      <tbody>
+@if(not .Items)
+        <tr><td colspan="9">Filtreye uygun ödeme bulunamadı.</td></tr>
+@endif
+@foreach(.Items as $item)
+        <tr data-key="{{ $item.Reference }}">
+          <td><code>{{ $item.Reference }}</code></td>
+          <td>{{ $item.Provider }}</td>
+          <td>{{ $item.StatusLabel }}</td>
+          <td>{{ $item.BuyerDisplay }}
+@if($item.BuyerEmail)
+            <div class="muted">{{ $item.BuyerEmail }}</div>
+@endif
+          </td>
+          <td>{{ $item.AmountDisplay }}</td>
+          <td>{{ $item.Installment }}</td>
+          <td>{{ $item.CardDisplay }}</td>
+          <td>{{ $item.CreatedAt }}</td>
+          <td>
+            <div class="table-actions">
+@component("components.detail_button", dict "Href" $item.DetailHref "Label" "Detay")
+@endcomponent
+            </div>
+          </td>
+        </tr>
+@endforeach
+      </tbody>
+    </table>
+@component("components.pagination", dict "Prefix" "payments" "Pages" .Pages)
+@endcomponent
+  </div>
+</section>

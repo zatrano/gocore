@@ -1,0 +1,13 @@
+DROP TABLE IF EXISTS contact_messages;
+DROP TABLE IF EXISTS outbox_jobs;
+DROP TABLE IF EXISTS idempotency_keys;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS app_settings;
+DROP TABLE IF EXISTS auth_tokens;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS mfa_recovery_codes;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS roles;

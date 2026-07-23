@@ -1,0 +1,17 @@
+<section class="card">
+<div class="page-header">
+  <h1>Yeni Kullanıcı</h1>
+  <div class="actions"><a href="/dashboard/users">← Kullanıcılara dön</a></div>
+</div>
+<form g-submit="users.create">
+@component("components.input", dict "ID" "new-name" "Name" "name" "Label" "Ad" "Type" "text" "Value" .FormName "Required" true "Error" .ErrName)
+@endcomponent
+@component("components.input", dict "ID" "new-email" "Name" "email" "Label" "E-posta" "Type" "email" "Value" .FormEmail "Required" true "Error" .ErrEmail)
+@endcomponent
+@component("components.input", dict "ID" "new-phone" "Name" "phone" "Label" "Telefon" "Type" "tel" "Value" .FormPhone "Error" .ErrPhone)
+@endcomponent
+@component("components.input", dict "ID" "new-password" "Name" "password" "Label" "Parola" "Type" "password" "Required" true "Error" .ErrPassword)
+@endcomponent
+@component("components.select", dict "ID" "new-role" "Name" "role" "Label" "Rol" "Options" .RoleOptions "Error" .ErrRole)
+@endcomponent
+<button type="submit">Oluştur</button></form></section>

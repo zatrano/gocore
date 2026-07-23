@@ -1,0 +1,40 @@
+<section class="card">
+<div class="page-header">
+  <h1>İki Adımlı Doğrulama</h1>
+  <div class="actions"><a href="/dashboard/account">← Hesaba dön</a></div>
+</div>
+<dl><div><dt>Durum</dt><dd>
+@component("components.badge", dict "Label" .StatusLabel "OK" .MFAEnabled)
+@endcomponent
+</dd></div></dl>
+
+@if(.ShowRecoveryCodes)
+<div class="alert warning" role="alert"><strong>Kurtarma kodlarını şimdi kaydedin.</strong> Bu kodlar tekrar gösterilmeyecek.</div>
+<ul class="recovery-code-list">
+@foreach(.RecoveryCodes as $code)
+<li><code>{{ $code }}</code></li>
+@endforeach
+</ul>
+<p class="muted">Güvenlik nedeniyle diğer oturumlarınız kapatıldı. Kodları kaydettikten sonra yeniden giriş yapın.</p>
+@elseif(.ShowSetup)
+<h2>Kurulum Bilgileri</h2>
+<p class="muted">Authenticator uygulamanıza aşağıdaki bilgileri ekleyin.</p>
+@if(.QRDataURI)
+<img class="mfa-qr" src="{{ .QRDataURI }}" width="220" height="220" alt="Authenticator kurulum QR kodu">
+@endif
+<p><span class="muted">Gizli Anahtar</span><br><code>{{ .Secret }}</code></p>
+<p><span class="muted">URI</span><br><code class="text-xs">{{ .URI }}</code></p>
+<form g-submit="mfa.enable"><h2>Etkinleştir</h2>
+@component("components.input", dict "ID" "mfa-code" "Name" "code" "Label" "Doğrulama Kodu" "Type" "text" "Required" true "Autocomplete" "one-time-code" "Error" .ErrCode)
+@endcomponent
+<button type="submit">MFA Etkinleştir</button></form>
+@elseif(.ShowSetupBtn)
+<form g-submit="mfa.setup"><h2>Kurulum</h2>
+<button type="submit">Kurulumu Başlat</button></form>
+@else
+<form g-submit="mfa.disable"><h2>Devre Dışı Bırak</h2>
+@component("components.input", dict "ID" "mfa-disable-code" "Name" "code" "Label" "Doğrulama Kodu" "Type" "text" "Required" true "Autocomplete" "one-time-code" "Error" .ErrCode)
+@endcomponent
+<button type="submit" class="danger">MFA Kapat</button></form>
+@endif
+</section>

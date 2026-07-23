@@ -1,0 +1,29 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">İzinler</h1>
+<a class="button" href="/dashboard/rbac/roles">Roller</a></div>
+<div class="card"><h2>Yeni İzin</h2>
+<form g-submit="permission.create">
+<div class="form-row"><label for="perm-name">Ad</label>
+<input id="perm-name" name="name" required minlength="3" maxlength="64" placeholder="modul:eylem" value="{{ .FormName }}">
+@component("components.field_error", dict "Error" .NameError)
+@endcomponent
+</div>
+<div class="form-row"><label for="perm-desc">Açıklama</label>
+<input id="perm-desc" name="description" maxlength="255" value="{{ .FormDesc }}"></div>
+<button type="submit">Ekle</button></form></div>
+<div class="card"><h2>İzin Listesi</h2>
+@if(.HasPermissions)
+<table><thead><tr><th>Ad</th><th>Açıklama</th></tr></thead><tbody>
+@foreach(.Permissions as $perm)
+<tr data-key="{{ $perm.Name }}"><td><code>{{ $perm.Name }}</code></td><td>
+<form g-submit="permission.update" class="actions">
+<input type="hidden" name="name" value="{{ $perm.Name }}">
+<input name="description" maxlength="255" value="{{ $perm.Description }}">
+<button type="submit">Kaydet</button></form>
+</td></tr>
+@endforeach
+</tbody></table>
+@else
+<p class="muted">Kayıt bulunamadı.</p>
+@endif
+</div></section>

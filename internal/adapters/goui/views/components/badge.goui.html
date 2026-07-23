@@ -1,0 +1,6 @@
+@props(Label string, OK bool = false)
+@if(.Props.OK)
+<span class="badge ok">{{ .Props.Label }}</span>
+@else
+<span class="badge muted">{{ .Props.Label }}</span>
+@endif

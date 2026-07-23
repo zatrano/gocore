@@ -1,0 +1,21 @@
+<section class="card">
+  <div class="page-header">
+    <h1>Denetim Detayı</h1>
+    <div class="actions"><a href="/dashboard/audit/logs">← Listeye dön</a></div>
+  </div>
+  <dl>
+@foreach(.Rows as $row)
+@component("components.detail_row", dict "Label" $row.Label "Value" $row.Value)
+@endcomponent
+@endforeach
+  </dl>
+@if(.MetaRows)
+  <h2>Metadata</h2>
+  <dl>
+@foreach(.MetaRows as $row)
+@component("components.detail_row", dict "Label" $row.Label "Value" $row.Value)
+@endcomponent
+@endforeach
+  </dl>
+@endif
+</section>

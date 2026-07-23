@@ -1,0 +1,33 @@
+@if(.MFARequired)
+<section class="auth-card">
+  <h1>{{ .MFATitle }}</h1>
+  <p class="muted">{{ .MFAIntro }}</p>
+  <form g-submit="login.submit" class="stack">
+    <input type="hidden" name="next" value="{{ .Next }}">
+    <input type="hidden" name="mfa_challenge" value="{{ .MFAChallenge }}">
+@component("components.input", dict "ID" "login-mfa-code" "Name" "mfa_code" "Label" .MFACodeLabel "Type" "text" "Value" .MFACode "Required" true "Error" .ErrMFACode)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .MFASubmitLabel }}</button>
+  </form>
+@component("components.auth_links", dict "Links" .MFALinks "Single" true)
+@endcomponent
+</section>
+@else
+<section class="auth-card">
+  <h1>{{ .Title }}</h1>
+@component("components.oauth_buttons", dict "Providers" .OAuthProviders "DividerLabel" .OAuthDivider)
+@endcomponent
+  <form g-submit="login.submit" class="stack">
+    <input type="hidden" name="next" value="{{ .Next }}">
+@component("components.input", dict "ID" "login-email" "Name" "email" "Label" .EmailLabel "Type" "email" "Value" .Email "Required" true "Error" .ErrEmail)
+@endcomponent
+@component("components.input", dict "ID" "login-password" "Name" "password" "Label" .PasswordLabel "Type" "password" "Value" "" "Required" true "Error" .ErrPassword)
+@endcomponent
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@endcomponent
+    <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
+  </form>
+@component("components.auth_links", dict "Links" .Links)
+@endcomponent
+</section>
+@endif

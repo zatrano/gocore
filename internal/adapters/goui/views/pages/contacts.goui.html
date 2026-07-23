@@ -1,0 +1,40 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">İletişim Mesajları</h1>
+@component("components.export_links", dict "Links" .ExportLinks)
+@endcomponent
+</div>
+<div class="card"><h2>Filtreler</h2>
+<form class="audit-filter-grid" g-submit="contacts.filter"><input type="hidden" name="page" value="1">
+@component("components.select", dict "ID" "unread" "Name" "unread" "Label" "Durum" "Value" .UnreadValue "Event" "field.unread" "Options" .UnreadOptions)
+@endcomponent
+@component("components.select", dict "ID" "limit" "Name" "limit" "Label" "Göster" "Value" .LimitValue "Event" "field.limit" "Options" .LimitOptions)
+@endcomponent
+<button type="submit">Filtrele</button>
+<button type="button" class="secondary" g-click="contacts.clear">Temizle</button>
+</form></div>
+<div class="card"><h2>Mesaj Listesi</h2>
+<table><thead><tr>
+<th>Tarih</th><th>Ad</th><th>E-posta</th><th>Durum</th><th></th>
+</tr></thead><tbody>
+@if(.HasItems)
+@foreach(.Items as $item)
+<tr data-key="{{ $item.ID }}"><td>{{ $item.Date }}</td><td>{{ $item.Name }}</td><td>{{ $item.Email }}</td><td>
+@if($item.Unread)
+<span class="badge">Okunmamış</span>
+@else
+<span class="badge muted">Okundu</span>
+@endif
+</td><td>
+<div class="table-actions">
+@component("components.detail_button", dict "Href" $item.DetailHref "Label" "Detay")
+@endcomponent
+</div>
+</td></tr>
+@endforeach
+@else
+<tr><td colspan="5">Kayıt bulunamadı.</td></tr>
+@endif
+</tbody></table>
+@component("components.pagination", dict "Prefix" "contacts" "Pages" .Pages)
+@endcomponent
+</div></section>

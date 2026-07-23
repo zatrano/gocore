@@ -1,0 +1,41 @@
+@props(EventBase string, Multiple bool = false, Accept string = "", Files any)
+@if(.Props.Multiple)
+  @if(.Props.Accept)
+<div class="goui-upload" data-goui-upload="1" data-upload-url="/goui/upload" data-upload-event="{{ .Props.EventBase }}.uploaded" data-multiple="1" data-accept="{{ .Props.Accept }}">
+  @else
+<div class="goui-upload" data-goui-upload="1" data-upload-url="/goui/upload" data-upload-event="{{ .Props.EventBase }}.uploaded" data-multiple="1">
+  @endif
+@else
+  @if(.Props.Accept)
+<div class="goui-upload" data-goui-upload="1" data-upload-url="/goui/upload" data-upload-event="{{ .Props.EventBase }}.uploaded" data-accept="{{ .Props.Accept }}">
+  @else
+<div class="goui-upload" data-goui-upload="1" data-upload-url="/goui/upload" data-upload-event="{{ .Props.EventBase }}.uploaded">
+  @endif
+@endif
+  <div class="goui-upload-drop">
+    <p class="goui-upload-hint">Dosyayı sürükleyin veya seçin</p>
+@if(.Props.Multiple)
+  @if(.Props.Accept)
+    <input class="goui-upload-input" type="file" accept="{{ .Props.Accept }}" multiple>
+  @else
+    <input class="goui-upload-input" type="file" multiple>
+  @endif
+@else
+  @if(.Props.Accept)
+    <input class="goui-upload-input" type="file" accept="{{ .Props.Accept }}">
+  @else
+    <input class="goui-upload-input" type="file">
+  @endif
+@endif
+  </div>
+  <button type="button" class="goui-upload-carrier" hidden g-click="{{ .Props.EventBase }}.uploaded"></button>
+@if(.Props.Files)
+  <ul class="goui-upload-list">
+  @foreach(.Props.Files as $file)
+    <li data-key="{{ $file.ID }}">{{ $file.Name }} <span class="goui-upload-size">({{ $file.Size }} B)</span>
+      <button type="button" class="link-button" g-click="{{ .Props.EventBase }}.remove" data-goui-value="{{ $file.ID }}">×</button>
+    </li>
+  @endforeach
+  </ul>
+@endif
+</div>

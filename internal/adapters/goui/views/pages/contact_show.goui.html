@@ -1,0 +1,37 @@
+<section class="card">
+<div class="page-header">
+  <h1>İletişim Mesajı</h1>
+  <div class="actions">
+    <a href="/dashboard/contacts">← Listeye dön</a>
+@if(.ShowMarkRead)
+    <button type="button" g-click="contacts.mark_read">Okundu işaretle</button>
+@endif
+  </div>
+</div>
+<dl>
+@component("components.detail_row", dict "Label" "Ad" "Value" .Name)
+@endcomponent
+@component("components.detail_row", dict "Label" "E-posta" "Value" .Email)
+@endcomponent
+@component("components.detail_row", dict "Label" "Dil" "Value" .Locale)
+@endcomponent
+@component("components.detail_row", dict "Label" "Durum" "Value" .Status)
+@endcomponent
+@if(.IsRead)
+@component("components.detail_row", dict "Label" "Okunma" "Value" "Okundu")
+@endcomponent
+  @if(.ReadAtFormatted)
+@component("components.detail_row", dict "Label" "Okunma zamanı" "Value" .ReadAtFormatted)
+@endcomponent
+  @endif
+@else
+@component("components.detail_row", dict "Label" "Okunma" "Value" "Okunmamış")
+@endcomponent
+@endif
+@component("components.detail_row", dict "Label" "Tarih" "Value" .CreatedAt)
+@endcomponent
+@component("components.detail_row", dict "Label" "Mesaj" "Value" .Message)
+@endcomponent
+@component("components.detail_row", dict "Label" "Kayıt ID" "Value" .ID)
+@endcomponent
+</dl></section>

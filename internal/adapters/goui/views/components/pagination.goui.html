@@ -1,0 +1,12 @@
+@props(Prefix string, Pages any)
+@if(.Props.Pages)
+<nav class="pagination" aria-label="Sayfalama">
+@foreach(.Props.Pages as $btn)
+@if($btn.Active)
+  <button type="button" class="page-btn active" g-click="{{ .Props.Prefix }}.page" data-goui-value="{{ $btn.N }}" data-key="page-{{ $btn.N }}">{{ $btn.N }}</button>
+@else
+  <button type="button" class="page-btn" g-click="{{ .Props.Prefix }}.page" data-goui-value="{{ $btn.N }}" data-key="page-{{ $btn.N }}">{{ $btn.N }}</button>
+@endif
+@endforeach
+</nav>
+@endif

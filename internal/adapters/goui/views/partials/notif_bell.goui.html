@@ -1,0 +1,8 @@
+<a href="/dashboard/account/notifications" class="ui-icon-btn notif-bell" data-notif-bell data-user-id="{{ .ActorUserID }}" data-goui-ignore title="{{ .Labels.Notifications }}" aria-label="{{ .NotifAriaLabel }}">
+  {{ icon "bell" }}
+@if(.HasUnread)
+  <span class="notif-bell__badge" data-notif-badge data-count="{{ .UnreadCount }}">{{ .UnreadBadge }}</span>
+@else
+  <span class="notif-bell__badge" data-notif-badge data-count="{{ .UnreadCount }}" hidden>{{ .UnreadBadge }}</span>
+@endif
+</a>

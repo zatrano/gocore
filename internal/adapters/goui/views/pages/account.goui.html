@@ -1,0 +1,50 @@
+<section class="grid two">
+<div class="card"><h2>Profil Özeti</h2><dl>
+<div><dt>Rol</dt><dd><span class="badge">{{ .Role }}</span></dd></div>
+<div><dt>MFA</dt><dd>
+@component("components.badge", dict "Label" .MFALabel "OK" .MFAEnabled)
+@endcomponent
+</dd></div>
+<div><dt>E-posta doğrulama</dt><dd>
+@component("components.badge", dict "Label" .EmailVerifiedLabel "OK" .EmailVerified)
+@endcomponent
+</dd></div>
+</dl><div class="actions">
+<a class="button" href="/dashboard/account/mfa">MFA Yönetimi</a>
+<a class="button" href="/dashboard/account/notifications">Bildirimler</a>
+</div></div>
+
+<div class="card"><h2>Hesap Ayarları</h2>
+<div class="account-settings-grid">
+
+<form g-submit="account.change_name"><h3>Ad</h3>
+@component("components.input", dict "ID" "acc-name" "Name" "name" "Label" "Ad Soyad" "Type" "text" "Value" .FormName "Required" true "Error" .ErrName)
+@endcomponent
+<button type="submit" class="sm">Adı Güncelle</button></form>
+
+<form g-submit="account.change_email"><h3>E-posta</h3>
+@component("components.input", dict "ID" "acc-email" "Name" "email" "Label" "E-posta" "Type" "email" "Value" .FormEmail "Required" true "Autocomplete" "email" "Error" .ErrEmail)
+@endcomponent
+<button type="submit" class="sm">E-postayı Güncelle</button></form>
+
+<form g-submit="account.change_phone"><h3>Telefon</h3>
+@component("components.input", dict "ID" "acc-phone" "Name" "phone" "Label" "Telefon" "Type" "tel" "Value" .FormPhone "Error" .ErrPhone)
+@endcomponent
+<p class="muted text-xs">Boş bırakırsanız telefon numaranız kaldırılır.</p>
+<button type="submit" class="sm">Telefonu Güncelle</button></form>
+
+<form g-submit="account.change_locale"><h3>Dil Tercihi</h3>
+@component("components.select", dict "ID" "acc-locale" "Name" "locale" "Label" "Dil" "Options" .LocaleOptions "Error" .ErrLocale)
+@endcomponent
+<button type="submit" class="sm">Dili Güncelle</button></form>
+
+<form g-submit="account.change_password" class="account-settings-span"><h3>Parola</h3>
+<div class="grid two">
+@component("components.input", dict "ID" "acc-old" "Name" "old_password" "Label" "Mevcut Parola" "Type" "password" "Required" true "Error" .ErrOldPassword)
+@endcomponent
+@component("components.input", dict "ID" "acc-new" "Name" "new_password" "Label" "Yeni Parola" "Type" "password" "Required" true "Error" .ErrNewPassword)
+@endcomponent
+</div>
+<button type="submit" class="sm">Parolayı Değiştir</button></form>
+
+</div></div></section>

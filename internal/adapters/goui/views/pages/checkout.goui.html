@@ -1,0 +1,85 @@
+<section class="card">
+  <div class="page-header">
+    <h1>Ödeme</h1>
+    <div class="actions"><a href="/dashboard/payments/transactions">← Ödemelere dön</a></div>
+  </div>
+@if(not .Configured)
+  <div class="alert error" role="alert">Aktif ödeme sağlayıcısı yapılandırılmamış. Önce ayarlardan sağlayıcıyı yapılandırın.</div>
+</section>
+@else
+  <p class="muted">Aktif sağlayıcı: <strong>{{ .ActiveProvider }}</strong></p>
+
+  <div class="form-section">
+    <h2 class="form-section__title">Kart BIN Sorgusu</h2>
+    <form g-submit="checkout.bin_check">
+@component("components.input", dict "ID" "bin_number" "Name" "bin_number" "Label" "Kart numarası (ilk 6–8 hane)" "Type" "text" "Value" .BinNumber "Event" "field.bin_number" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "bin_price" "Name" "bin_price" "Label" .BinPriceLabel "Type" "text" "Value" .BinPrice "Event" "field.bin_price" "Debounce" "150")
+@endcomponent
+      <button type="submit">BIN Sorgula</button>
+    </form>
+@if(.BinResult)
+    <pre class="bin-result">{{ .BinResult }}</pre>
+@endif
+  </div>
+
+@if(.MokaActive)
+  <div class="form-section">
+    <h2 class="form-section__title">Taksit tutarı (Moka)</h2>
+    <form g-submit="checkout.calc_amount">
+@component("components.input", dict "ID" "calc_bin" "Name" "calc_bin" "Label" "BIN" "Type" "text" "Value" .BinNumber "Event" "field.bin_number" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "calc_amount" "Name" "calc_amount" "Label" "Sipariş tutarı" "Type" "text" "Value" .Amount "Event" "field.amount" "Required" true "Debounce" "150")
+@endcomponent
+      <button type="submit">Tutarı Hesapla</button>
+    </form>
+@if(.CalcResult)
+    <pre class="calc-result">{{ .CalcResult }}</pre>
+@endif
+  </div>
+@endif
+
+  <div class="form-section">
+    <h2 class="form-section__title">3D Secure Ödeme</h2>
+    <form g-submit="checkout.submit">
+@component("components.input", dict "ID" "amount" "Name" "amount" "Label" "Tutar" "Type" "text" "Value" .Amount "Event" "field.amount" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "currency" "Name" "currency" "Label" "Para birimi" "Type" "text" "Value" .Currency "Event" "field.currency" "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "installment" "Name" "installment" "Label" "Taksit" "Type" "number" "Value" .Installment "Event" "field.installment" "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "card_holder" "Name" "card_holder" "Label" "Kart sahibi" "Type" "text" "Value" .CardHolder "Event" "field.card_holder" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "card_number" "Name" "card_number" "Label" "Kart numarası" "Type" "text" "Value" .CardNumber "Event" "field.card_number" "Required" true "Autocomplete" "cc-number" "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "exp_month" "Name" "exp_month" "Label" "Son kullanma (AA)" "Type" "text" "Value" .ExpMonth "Event" "field.exp_month" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "exp_year" "Name" "exp_year" "Label" "Son kullanma (YYYY)" "Type" "text" "Value" .ExpYear "Event" "field.exp_year" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "cvc" "Name" "cvc" "Label" "CVC" "Type" "text" "Value" .Cvc "Event" "field.cvc" "Required" true "Autocomplete" "cc-csc" "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_name" "Name" "buyer_name" "Label" "Ad" "Type" "text" "Value" .BuyerName "Event" "field.buyer_name" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_surname" "Name" "buyer_surname" "Label" "Soyad" "Type" "text" "Value" .BuyerSurname "Event" "field.buyer_surname" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_email" "Name" "buyer_email" "Label" "E-posta" "Type" "email" "Value" .BuyerEmail "Event" "field.buyer_email" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_phone" "Name" "buyer_phone" "Label" "Telefon" "Type" "tel" "Value" .BuyerPhone "Event" "field.buyer_phone" "Debounce" "150")
+@endcomponent
+@if(.IyzicoActive)
+@component("components.input", dict "ID" "buyer_identity" "Name" "buyer_identity" "Label" "TC Kimlik No" "Type" "text" "Value" .BuyerIdentity "Event" "field.buyer_identity" "Required" true "Debounce" "150")
+@endcomponent
+@endif
+@component("components.input", dict "ID" "buyer_city" "Name" "buyer_city" "Label" "Şehir" "Type" "text" "Value" .BuyerCity "Event" "field.buyer_city" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_address" "Name" "buyer_address" "Label" "Açık adres" "Type" "text" "Value" .BuyerAddress "Event" "field.buyer_address" "Required" true "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_country" "Name" "buyer_country" "Label" "Ülke" "Type" "text" "Value" .BuyerCountry "Event" "field.buyer_country" "Debounce" "150")
+@endcomponent
+@component("components.input", dict "ID" "buyer_zip" "Name" "buyer_zip" "Label" "Posta kodu" "Type" "text" "Value" .BuyerZip "Event" "field.buyer_zip" "Debounce" "150")
+@endcomponent
+      <button type="submit">3DS ile Öde</button>
+    </form>
+  </div>
+</section>
+@endif

@@ -1,0 +1,19 @@
+<section class="landing">
+<div class="landing-hero">
+  <h1>{{ .HeroTitle }}</h1>
+  <p>{{ .HeroSubtitle }}</p>
+  <div class="landing-actions">
+@if(.LoggedIn)
+    <a class="btn primary" href="/dashboard">{{ .DashboardLabel }}</a>
+@else
+    <a class="btn primary" href="/auth/login">{{ .CTALabel }}</a>
+@endif
+    <a class="btn secondary" href="{{ .ContactPath }}">{{ .ContactLabel }}</a>
+  </div>
+</div>
+<div class="landing-features"><ul class="feature-list">
+@foreach(.Features as $feat)
+  <li data-key="{{ $feat.Key }}"><h3>{{ $feat.Title }}</h3><p>{{ $feat.Body }}</p></li>
+@endforeach
+</ul></div>
+</section>

@@ -1,0 +1,25 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">Roller</h1>
+<a class="button" href="/dashboard/rbac/roles/new">Yeni Rol</a></div>
+<div class="card"><h2>Rol Listesi</h2>
+@if(.HasRoles)
+<table><thead><tr><th>Ad</th><th>Açıklama</th><th>Sistem</th><th>İzin</th><th></th></tr></thead><tbody>
+@foreach(.Roles as $role)
+<tr data-key="{{ $role.Name }}"><td>{{ $role.Name }}</td><td>{{ $role.Description }}</td><td>
+@if($role.IsSystem)
+Evet
+@else
+Hayır
+@endif
+</td><td>{{ $role.PermCount }}</td><td>
+<div class="table-actions">
+@component("components.detail_button", dict "Href" $role.EditHref "Label" "Düzenle")
+@endcomponent
+</div>
+</td></tr>
+@endforeach
+</tbody></table>
+@else
+<p class="muted">Kayıt bulunamadı.</p>
+@endif
+</div></section>

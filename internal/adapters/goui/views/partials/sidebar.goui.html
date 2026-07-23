@@ -1,0 +1,58 @@
+<button type="button" class="shell-panel-overlay" data-sidebar-close aria-label="{{ .Labels.CloseMenu }}"></button>
+<aside class="shell-panel-sidebar">
+  <div class="sidebar-header">
+    <a class="brand sidebar-brand" href="/dashboard"><span class="brand-mark">Z</span><span class="brand-wordmark">ZATRANO</span></a>
+    <button type="button" class="ui-icon-btn sidebar-close" data-sidebar-close aria-label="{{ .Labels.CloseMenu }}">
+      {{ icon "close" }}
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+  @foreach(.NavItems as $item)
+    @if($item.Group)
+    @if($item.Open)
+    <details class="sidebar-nav-group" data-goui-ignore open>
+    @else
+    <details class="sidebar-nav-group" data-goui-ignore>
+    @endif
+      <summary class="sidebar-nav-link sidebar-nav-group__toggle">
+        <span class="nav-icon">{{ icon $item.Icon }}</span>
+        <span>{{ $item.Label }}</span>
+        <span class="sidebar-nav-chevron" aria-hidden="true">{{ icon "chevron" }}</span>
+      </summary>
+      <div class="sidebar-nav-sub">
+      @foreach($item.Children as $child)
+        @if($child.Active)
+        <a class="sidebar-nav-link sidebar-nav-link--active" href="{{ $child.Href }}">
+          <span class="nav-icon">{{ icon $child.Icon }}</span><span>{{ $child.Label }}</span>
+        </a>
+        @else
+        <a class="sidebar-nav-link" href="{{ $child.Href }}">
+          <span class="nav-icon">{{ icon $child.Icon }}</span><span>{{ $child.Label }}</span>
+        </a>
+        @endif
+      @endforeach
+      </div>
+    </details>
+    @else
+      @if($item.Active)
+      <a class="sidebar-nav-link sidebar-nav-link--active" href="{{ $item.Href }}">
+        <span class="nav-icon">{{ icon $item.Icon }}</span><span>{{ $item.Label }}</span>
+      </a>
+      @else
+      <a class="sidebar-nav-link" href="{{ $item.Href }}">
+        <span class="nav-icon">{{ icon $item.Icon }}</span><span>{{ $item.Label }}</span>
+      </a>
+      @endif
+    @endif
+  @endforeach
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <span class="sidebar-user-icon">{{ icon "account" }}</span>
+      <div class="sidebar-user-copy">
+        <strong title="{{ .ActorRole }}">{{ .ActorRole }}</strong>
+        <span title="{{ .ActorEmail }}">{{ .ActorEmail }}</span>
+      </div>
+    </div>
+  </div>
+</aside>

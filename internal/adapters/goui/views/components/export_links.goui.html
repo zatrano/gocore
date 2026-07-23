@@ -1,0 +1,4 @@
+@props(Links any)
+@foreach(.Props.Links as $link)
+<a class="button secondary sm" href="{{ $link.Href }}">{{ $link.Label }}</a>
+@endforeach

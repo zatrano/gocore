@@ -1,0 +1,16 @@
+<div class="page-header"><h1>Dashboard</h1></div>
+<section class="dashboard-stats">
+@component("components.stat", dict "Icon" "shield" "Label" "Rol" "Value" .Role)
+@endcomponent
+@component("components.stat", dict "Icon" "account" "Label" "Hesap" "Value" .Email)
+@endcomponent
+@component("components.stat", dict "Icon" "dashboard" "Label" "Durum" "Value" "Aktif" "Hint" "Oturumunuz açık")
+@endcomponent
+</section>
+<section class="card dashboard-welcome">
+  <div>
+    <h2>Hoş geldiniz, {{ .Role }}</h2>
+    <p class="muted">Sol menüden modüllere erişebilirsiniz. Tüm işlemler mevcut yetkileriniz kapsamında listelenir.</p>
+  </div>
+  <a class="button" href="{{ .CTAHref }}">{{ .CTALabel }}</a>
+</section>

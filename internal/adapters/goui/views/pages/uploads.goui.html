@@ -1,0 +1,21 @@
+<section>
+<div class="actions" style="margin-bottom:1rem"><h1 style="margin:0;flex:1">Dosya Yükle</h1></div>
+@if(.HasResult)
+<div class="card"><h2>Yüklenen Dosyalar</h2>
+<table><thead><tr><th>Dosya</th><th>Anahtar</th><th>Tür</th><th>Boyut</th></tr></thead><tbody>
+@foreach(.ResultItems as $item)
+<tr data-key="{{ $item.Key }}"><td>{{ $item.Filename }}</td><td><code>{{ $item.Key }}</code></td><td>{{ $item.ContentType }}</td><td>{{ $item.SizeStr }} bayt</td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+@if(.Warning)
+<div class="alert warning" role="status">{{ .Warning }}</div>
+@endif
+<div class="card"><h2>Yeni Yükleme</h2>
+<form g-submit="uploads.submit">
+<div class="form-row"><label>Dosyalar</label>
+<p class="muted">Birden fazla dosya seçebilirsiniz. Dosya başına maksimum {{ .MaxBytes }} bayt.</p>
+@component("components.upload_zone", dict "EventBase" "uploads.file" "Multiple" true "Accept" .Accept "Files" .Files)
+@endcomponent
+</div>
+<button type="submit">Yükle</button></form></div></section>

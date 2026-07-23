@@ -1,0 +1,52 @@
+<section class="card">
+<div class="page-header">
+  <h1>Bildirimler <span class="muted">({{ .UnreadCount }} okunmamış)</span></h1>
+  <div class="actions"><a href="/dashboard/account">← Hesaba dön</a></div>
+</div>
+
+<div class="actions" style="margin-bottom:1rem" data-key="inbox-toolbar-{{ .RenderGen }}">
+@if(.UnreadOnly)
+<button type="button" class="button" g-click="inbox.filter" data-goui-value="all">Tümü</button>
+<button type="button" class="button active" g-click="inbox.filter" data-goui-value="unread">Okunmamış</button>
+@else
+<button type="button" class="button active" g-click="inbox.filter" data-goui-value="all">Tümü</button>
+@if(.HasUnread)
+<button type="button" class="button" g-click="inbox.filter" data-goui-value="unread">Okunmamış</button>
+@endif
+@endif
+@if(.HasUnread)
+<button type="button" class="button secondary" g-click="inbox.mark_all_read">Tümünü okundu yap</button>
+@endif
+@if(.HasItems)
+<form g-submit="inbox.delete_all" data-confirm="Tüm bildirimler kalıcı olarak silinecek. Devam edilsin mi?" data-confirm-title="Tümünü sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç" style="display:inline">
+<button type="submit" class="danger">Tümünü sil</button></form>
+@endif
+</div>
+
+@if(.Empty)
+<p class="muted">Bildirim yok.</p><a class="button" href="/dashboard">Panele dön</a>
+@else
+<ul class="notif-list" data-key="inbox-list-{{ .RenderGen }}">
+@foreach(.Items as $item)
+@if($item.Read)
+<li class="notif-item is-read" data-key="{{ $item.ID }}">
+@else
+<li class="notif-item" data-key="{{ $item.ID }}">
+@endif
+<strong>{{ $item.Title }}</strong><p>{{ $item.Content }}</p>
+<p class="muted">{{ $item.CreatedAt }}</p>
+<div class="actions" style="margin-top:.5rem;gap:.5rem">
+@if(not $item.Read)
+<button type="button" g-click="inbox.mark_read" data-goui-id="{{ $item.ID }}">Okundu</button>
+@endif
+<form g-submit="inbox.delete" data-confirm="Bu bildirim kalıcı olarak silinecek. Devam edilsin mi?" data-confirm-title="Bildirimi sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç" style="display:inline">
+<input type="hidden" name="id" value="{{ $item.ID }}">
+<button type="submit" class="danger">Bildirimi sil</button></form>
+</div></li>
+@endforeach
+</ul>
+@endif
+
+@component("components.pagination", dict "Prefix" "inbox" "Pages" .Pages)
+@endcomponent
+</section>

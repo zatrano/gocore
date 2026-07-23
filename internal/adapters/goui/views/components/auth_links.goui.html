@@ -1,0 +1,10 @@
+@props(Links any, Single bool = false, AriaLabel string = "Hesap bağlantıları")
+@if(.Props.Single)
+<nav class="auth-links auth-links-single" aria-label="{{ .Props.AriaLabel }}">
+@else
+<nav class="auth-links" aria-label="{{ .Props.AriaLabel }}">
+@endif
+@foreach(.Props.Links as $link)
+  <a href="{{ $link.Href }}">{{ $link.Label }}</a>
+@endforeach
+</nav>
