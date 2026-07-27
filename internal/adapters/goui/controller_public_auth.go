@@ -86,23 +86,23 @@ func (c *contactController) Mount(context.Context, *Page) error { return nil }
 
 func (c *contactController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.contact", map[string]any{
-		"Title":            p.T("public.contact.title", "İletişim"),
-		"Intro":            p.T("public.contact.intro", "Sorularınız için aşağıdaki formu doldurun veya bize doğrudan ulaşın."),
-		"NameLabel":        p.T("public.contact.name", "Ad Soyad"),
-		"EmailLabel":       p.T("public.contact.email", "E-posta"),
-		"MessageLabel":     p.T("public.contact.message", "Mesaj"),
-		"Name":             c.name,
-		"Email":            c.email,
-		"Message":          c.message,
-		"ErrName":          c.fieldErrors["name"],
-		"ErrEmail":         c.fieldErrors["email"],
-		"ErrMessage":       c.fieldErrors["message"],
+		"Title":             p.T("public.contact.title", "İletişim"),
+		"Intro":             p.T("public.contact.intro", "Sorularınız için aşağıdaki formu doldurun veya bize doğrudan ulaşın."),
+		"NameLabel":         p.T("public.contact.name", "Ad Soyad"),
+		"EmailLabel":        p.T("public.contact.email", "E-posta"),
+		"MessageLabel":      p.T("public.contact.message", "Mesaj"),
+		"Name":              c.name,
+		"Email":             c.email,
+		"Message":           c.message,
+		"ErrName":           c.fieldErrors["name"],
+		"ErrEmail":          c.fieldErrors["email"],
+		"ErrMessage":        c.fieldErrors["message"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.contact.submit", "Gönder"),
-		"ReachTitle":       p.T("public.contact.reach_us", "Bize Ulaşın"),
-		"PhoneLabel":       p.T("public.contact.phone", "Telefon"),
-		"AddressLabel":     p.T("public.contact.address", "Adres"),
+		"SubmitLabel":       p.T("public.contact.submit", "Gönder"),
+		"ReachTitle":        p.T("public.contact.reach_us", "Bize Ulaşın"),
+		"PhoneLabel":        p.T("public.contact.phone", "Telefon"),
+		"AddressLabel":      p.T("public.contact.address", "Adres"),
 	})
 }
 
@@ -192,27 +192,27 @@ func (c *loginController) Mount(_ context.Context, p *Page) error {
 
 func (c *loginController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.login", map[string]any{
-		"MFARequired":      c.mfaRequired,
-		"MFATitle":         p.T("public.auth.mfa.title", "İki Adımlı Doğrulama"),
-		"MFAIntro":         p.T("public.auth.mfa.intro", "İki adımlı doğrulama kodunuzu girin."),
-		"MFACodeLabel":     p.T("public.auth.mfa.code", "Authenticator veya kurtarma kodu"),
-		"MFACode":          c.mfaCode,
-		"MFAChallenge":     c.mfaChallenge,
-		"MFASubmitLabel":   p.T("public.auth.mfa.submit", "Doğrula"),
-		"ErrMFACode":       c.fieldErrors["mfa_code"],
-		"MFALinks":         []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.mfa.back", "Giriş sayfasına dön")}},
-		"Title":            p.T("public.auth.login.title", "Giriş"),
-		"OAuthProviders":   buildOAuthProviders(p, c.providers, "login", c.next),
-		"OAuthDivider":     p.T("public.auth.or", "veya"),
-		"Next":             c.next,
-		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
-		"PasswordLabel":    p.T("public.auth.field.password", "Parola"),
-		"Email":            c.email,
-		"ErrEmail":         c.fieldErrors["email"],
-		"ErrPassword":      c.fieldErrors["password"],
+		"MFARequired":       c.mfaRequired,
+		"MFATitle":          p.T("public.auth.mfa.title", "İki Adımlı Doğrulama"),
+		"MFAIntro":          p.T("public.auth.mfa.intro", "İki adımlı doğrulama kodunuzu girin."),
+		"MFACodeLabel":      p.T("public.auth.mfa.code", "Authenticator veya kurtarma kodu"),
+		"MFACode":           c.mfaCode,
+		"MFAChallenge":      c.mfaChallenge,
+		"MFASubmitLabel":    p.T("public.auth.mfa.submit", "Doğrula"),
+		"ErrMFACode":        c.fieldErrors["mfa_code"],
+		"MFALinks":          []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.mfa.back", "Giriş sayfasına dön")}},
+		"Title":             p.T("public.auth.login.title", "Giriş"),
+		"OAuthProviders":    buildOAuthProviders(p, c.providers, "login", c.next),
+		"OAuthDivider":      p.T("public.auth.or", "veya"),
+		"Next":              c.next,
+		"EmailLabel":        p.T("public.auth.field.email", "E-posta"),
+		"PasswordLabel":     p.T("public.auth.field.password", "Parola"),
+		"Email":             c.email,
+		"ErrEmail":          c.fieldErrors["email"],
+		"ErrPassword":       c.fieldErrors["password"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.auth.login.submit", "Giriş Yap"),
+		"SubmitLabel":       p.T("public.auth.login.submit", "Giriş Yap"),
 		"Links": []ViewLink{
 			{Href: "/auth/forgot-password", Label: p.T("public.auth.login.forgot", "Şifremi unuttum")},
 			{Href: "/auth/register", Label: p.T("public.nav.register", "Kayıt")},
@@ -323,24 +323,24 @@ func (c *registerController) Mount(_ context.Context, p *Page) error {
 
 func (c *registerController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.register", map[string]any{
-		"Title":            p.T("public.auth.register.title", "Kayıt Ol"),
-		"OAuthProviders":   buildOAuthProviders(p, c.providers, "register", ""),
-		"OAuthDivider":     p.T("public.auth.or", "veya"),
-		"NameLabel":        p.T("public.auth.field.name", "Ad Soyad"),
-		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
-		"PhoneLabel":       p.T("public.auth.field.phone", "Telefon"),
-		"PasswordLabel":    p.T("public.auth.field.password", "Parola"),
-		"Name":             c.name,
-		"Email":            c.email,
-		"Phone":            c.phone,
-		"ErrName":          c.fieldErrors["name"],
-		"ErrEmail":         c.fieldErrors["email"],
-		"ErrPhone":         c.fieldErrors["phone"],
-		"ErrPassword":      c.fieldErrors["password"],
+		"Title":             p.T("public.auth.register.title", "Kayıt Ol"),
+		"OAuthProviders":    buildOAuthProviders(p, c.providers, "register", ""),
+		"OAuthDivider":      p.T("public.auth.or", "veya"),
+		"NameLabel":         p.T("public.auth.field.name", "Ad Soyad"),
+		"EmailLabel":        p.T("public.auth.field.email", "E-posta"),
+		"PhoneLabel":        p.T("public.auth.field.phone", "Telefon"),
+		"PasswordLabel":     p.T("public.auth.field.password", "Parola"),
+		"Name":              c.name,
+		"Email":             c.email,
+		"Phone":             c.phone,
+		"ErrName":           c.fieldErrors["name"],
+		"ErrEmail":          c.fieldErrors["email"],
+		"ErrPhone":          c.fieldErrors["phone"],
+		"ErrPassword":       c.fieldErrors["password"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.auth.register.submit", "Kayıt Ol"),
-		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.register.login_link", "Giriş yap")}},
+		"SubmitLabel":       p.T("public.auth.register.submit", "Kayıt Ol"),
+		"Links":             []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.register.login_link", "Giriş yap")}},
 	})
 }
 
@@ -418,14 +418,14 @@ func (c *forgotController) Mount(_ context.Context, p *Page) error {
 
 func (c *forgotController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.forgot", map[string]any{
-		"Title":            p.T("public.auth.forgot.title", "Şifremi Unuttum"),
-		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
-		"Email":            c.email,
-		"ErrEmail":         c.fieldErrors["email"],
+		"Title":             p.T("public.auth.forgot.title", "Şifremi Unuttum"),
+		"EmailLabel":        p.T("public.auth.field.email", "E-posta"),
+		"Email":             c.email,
+		"ErrEmail":          c.fieldErrors["email"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.auth.forgot.submit", "Sıfırlama Bağlantısı Gönder"),
-		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.forgot.back", "Girişe dön")}},
+		"SubmitLabel":       p.T("public.auth.forgot.submit", "Sıfırlama Bağlantısı Gönder"),
+		"Links":             []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.forgot.back", "Girişe dön")}},
 	})
 }
 
@@ -483,14 +483,14 @@ func (c *resetController) Mount(_ context.Context, p *Page) error {
 
 func (c *resetController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.reset", map[string]any{
-		"Title":            p.T("public.auth.reset.title", "Şifre Sıfırla"),
-		"Token":            c.token,
-		"PasswordLabel":    p.T("public.auth.field.new_password", "Yeni Parola"),
-		"ErrNewPassword":   c.fieldErrors["new_password"],
+		"Title":             p.T("public.auth.reset.title", "Şifre Sıfırla"),
+		"Token":             c.token,
+		"PasswordLabel":     p.T("public.auth.field.new_password", "Yeni Parola"),
+		"ErrNewPassword":    c.fieldErrors["new_password"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.auth.reset.submit", "Parolayı Sıfırla"),
-		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.reset.back", "Giriş sayfasına dön")}},
+		"SubmitLabel":       p.T("public.auth.reset.submit", "Parolayı Sıfırla"),
+		"Links":             []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.reset.back", "Giriş sayfasına dön")}},
 	})
 }
 
@@ -563,17 +563,17 @@ func (c *verifyController) Mount(ctx context.Context, p *Page) error {
 
 func (c *verifyController) Render(p *Page) (string, error) {
 	return p.RenderView("pages.verify", map[string]any{
-		"Done":             c.done,
-		"RedirectingText":  p.T("public.auth.verify.redirecting", "Yönlendiriliyorsunuz…"),
-		"Title":            p.T("public.auth.verify.title", "E-posta Doğrulama"),
-		"Intro":            p.T("public.auth.verify.intro", "Doğrulama e-postasını tekrar göndermek için aşağıdaki düğmeye tıklayın."),
-		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
-		"Email":            c.email,
-		"ErrEmail":         c.fieldErrors["email"],
+		"Done":              c.done,
+		"RedirectingText":   p.T("public.auth.verify.redirecting", "Yönlendiriliyorsunuz…"),
+		"Title":             p.T("public.auth.verify.title", "E-posta Doğrulama"),
+		"Intro":             p.T("public.auth.verify.intro", "Doğrulama e-postasını tekrar göndermek için aşağıdaki düğmeye tıklayın."),
+		"EmailLabel":        p.T("public.auth.field.email", "E-posta"),
+		"Email":             c.email,
+		"ErrEmail":          c.fieldErrors["email"],
 		"TurnstileSiteKey":  turnstileSiteKey(p),
 		"TurnstileResetKey": turnstileResetKey(p),
-		"SubmitLabel":      p.T("public.auth.verify.submit", "Doğrulama E-postası Gönder"),
-		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.verify.back", "Giriş sayfasına dön")}},
+		"SubmitLabel":       p.T("public.auth.verify.submit", "Doğrulama E-postası Gönder"),
+		"Links":             []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.verify.back", "Giriş sayfasına dön")}},
 	})
 }
 
