@@ -160,13 +160,23 @@ func TestMFARenderStates(t *testing.T) {
 		t.Fatal("setup formu yok")
 	}
 
-	c.setup = &appauth.SetupResult{Secret: "SEC<script>", URI: "otpauth://x"}
+	c.setup = &appauth.SetupResult{
+		Secret:    "SEC<script>",
+		URI:       "otpauth://x",
+		QRDataURI: "data:image/png;base64,abc+/=",
+	}
 	html, err = c.Render(&Page{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(html, "SEC&lt;script&gt;") {
 		t.Fatal("secret escape edilmedi")
+	}
+	if !strings.Contains(html, `src="data:image/png;base64,`) {
+		t.Fatalf("QR data URI must render in img src, got: %s", html)
+	}
+	if strings.Contains(html, "ZgotmplZ") {
+		t.Fatal("html/template must not sanitize QR data URI")
 	}
 	if !strings.Contains(html, `g-submit="mfa.enable"`) {
 		t.Fatal("enable formu yok")
@@ -426,6 +436,10 @@ func TestUserShowRenderPermGates(t *testing.T) {
 		`g-submit="user.change_name"`,
 		`g-submit="user.change_email"`,
 		`g-submit="user.change_phone"`,
+		`g-submit="user.set_password"`,
+		`name="new_password"`,
+		`name="confirm_password"`,
+		`account-settings-grid`,
 		`g-submit="user.delete"`,
 	} {
 		if !strings.Contains(html, needle) {
@@ -458,11 +472,14 @@ func TestUserShowPermissionDeniedEvents(t *testing.T) {
 		Params: map[string]string{"id": "u2"},
 	}
 
-	events := []string{"user.change_role", "user.activate", "user.delete", "user.restore"}
+	events := []string{"user.change_role", "user.activate", "user.delete", "user.restore", "user.set_password"}
 	for _, ev := range events {
 		page.Error = ""
 		if err := c.HandleEvent(context.Background(), page, ev, map[string]any{
-			"fields": map[string]any{"role": "admin", "name": "Bob", "email": "b@e.co", "phone": ""},
+			"fields": map[string]any{
+				"role": "admin", "name": "Bob", "email": "b@e.co", "phone": "",
+				"new_password": "password1", "confirm_password": "password1",
+			},
 		}); err != nil {
 			t.Fatalf("%s: %v", ev, err)
 		}

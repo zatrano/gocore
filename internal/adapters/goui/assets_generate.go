@@ -145,7 +145,7 @@ button{cursor:pointer}
 .form-row,.form-field{display:grid;gap:.4rem;margin-bottom:1rem}
 .account-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
 .account-settings-grid>form{
- margin:0;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--surface-2);
+ margin:0;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-control);background:transparent;
  display:flex;flex-direction:column;min-height:100%
 }
 .account-settings-grid>form h3{margin:0 0 .65rem;font-size:.875rem;font-weight:600}

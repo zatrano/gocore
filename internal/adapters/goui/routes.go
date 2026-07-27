@@ -397,7 +397,7 @@ func sendShell(c fiber.Ctx, opts shellOpts) error {
 		`<link rel="preconnect" href="https://fonts.bunny.net"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` +
 		`<link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet">` +
 		`<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">` +
-		`<link rel="stylesheet" href="/forms/style.css"><link rel="stylesheet" href="/goui/assets/app.css?v=btn-hover">` +
+		`<link rel="stylesheet" href="/forms/style.css"><link rel="stylesheet" href="/goui/assets/app.css?v=account-settings-bg">` +
 		`<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">` +
 		turnstileHead +
 		`</head><body><div id="app" aria-live="polite">` + opts.Body + `</div>`

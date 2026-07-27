@@ -60,6 +60,10 @@ func (s *Service) ChangePassword(ctx context.Context, cmd ChangePasswordCommand)
 	return s.changePwd.Handle(ctx, cmd)
 }
 
+func (s *Service) AdminSetPassword(ctx context.Context, cmd AdminSetPasswordCommand) error {
+	return s.changePwd.AdminSet(ctx, cmd)
+}
+
 func (s *Service) ForgotPassword(ctx context.Context, cmd ForgotPasswordCommand) error {
 	return s.forgot.Handle(ctx, cmd)
 }

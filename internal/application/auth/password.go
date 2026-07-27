@@ -83,6 +83,43 @@ func (h *ChangePasswordHandler) Handle(ctx context.Context, cmd ChangePasswordCo
 	return nil
 }
 
+// AdminSetPasswordCommand, yönetici tarafından (eski şifre olmadan) yeni şifre atama girdisidir.
+type AdminSetPasswordCommand struct {
+	UserID      string
+	NewPassword string
+}
+
+// AdminSet, eski şifre istemeden yeni şifre atar ve diğer oturumları iptal eder.
+func (h *ChangePasswordHandler) AdminSet(ctx context.Context, cmd AdminSetPasswordCommand) error {
+	if err := domainauth.ValidatePasswordLength(cmd.NewPassword); err != nil {
+		return err
+	}
+	id, err := user.ParseID(cmd.UserID)
+	if err != nil {
+		return err
+	}
+
+	var u *user.User
+	err = h.tx.WithinTx(ctx, func(ctx context.Context) error {
+		var err error
+		u, err = h.users.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if err := applyNewPassword(ctx, h.hasher, h.users, u, cmd.NewPassword); err != nil {
+			return err
+		}
+		return h.pub.Publish(ctx, u.PullEvents()...)
+	})
+	if err != nil {
+		return err
+	}
+
+	_ = h.sessions.RevokeAll(ctx, u.ID().String())
+	_ = h.notifier.SendPasswordChanged(ctx, u.Email().String(), u.Name(), u.PreferredLocale().String())
+	return nil
+}
+
 // ForgotPasswordCommand, sıfırlama bağlantısı isteği girdisidir.
 type ForgotPasswordCommand struct {
 	Email string

@@ -31,36 +31,50 @@
 <form g-submit="user.restore"><button type="submit">Geri Yükle</button></form>
   @endif
 @else
+<div class="account-settings-grid">
   @if(.CanActivate)
-<form g-submit="user.activate" class="mb-4"><h3>Aktifleştir</h3><button type="submit">Aktifleştir</button></form>
+<form g-submit="user.activate"><h3>Aktifleştir</h3>
+<p class="muted">Hesabı yeniden aktif hale getirir.</p>
+<button type="submit" class="sm">Aktifleştir</button></form>
   @endif
   @if(.CanChangeRole)
-<form g-submit="user.change_role" class="mb-4"><h3>Rol</h3>
+<form g-submit="user.change_role"><h3>Rol</h3>
 @component("components.select", dict "ID" "show-role" "Name" "role" "Label" "Rol" "Options" .RoleOptions "Error" .ErrRole)
 @endcomponent
-<button type="submit">Rolü Güncelle</button></form>
+<button type="submit" class="sm">Rolü Güncelle</button></form>
   @endif
   @if(.CanChangeProfileAny)
-<form g-submit="user.change_name" class="mb-4"><h3>Ad</h3>
+<form g-submit="user.change_name"><h3>Ad</h3>
 @component("components.input", dict "ID" "show-name" "Name" "name" "Label" "Ad" "Type" "text" "Value" .ProfileName "Required" true "Error" .ErrName)
 @endcomponent
-<button type="submit">Adı Güncelle</button></form>
+<button type="submit" class="sm">Adı Güncelle</button></form>
 
-<form g-submit="user.change_email" class="mb-4"><h3>E-posta</h3>
+<form g-submit="user.change_email"><h3>E-posta</h3>
 @component("components.input", dict "ID" "show-email" "Name" "email" "Label" "E-posta" "Type" "email" "Value" .ProfileEmail "Required" true "Error" .ErrEmail)
 @endcomponent
-<button type="submit">E-postayı Güncelle</button></form>
+<button type="submit" class="sm">E-postayı Güncelle</button></form>
 
-<form g-submit="user.change_phone" class="mb-4"><h3>Telefon</h3>
+<form g-submit="user.change_phone"><h3>Telefon</h3>
 @component("components.input", dict "ID" "show-phone" "Name" "phone" "Label" "Telefon" "Type" "tel" "Value" .ProfilePhone "Error" .ErrPhone)
 @endcomponent
-<button type="submit">Telefonu Güncelle</button></form>
+<button type="submit" class="sm">Telefonu Güncelle</button></form>
+
+<form g-submit="user.set_password" class="account-settings-span"><h3>Parola</h3>
+<p class="muted">Yeni parola atanır; kullanıcının diğer oturumları sonlanır.</p>
+<div class="grid two">
+@component("components.input", dict "ID" "show-new-password" "Name" "new_password" "Label" "Yeni Parola" "Type" "password" "Required" true "Error" .ErrNewPassword)
+@endcomponent
+@component("components.input", dict "ID" "show-confirm-password" "Name" "confirm_password" "Label" "Parola Tekrar" "Type" "password" "Required" true "Error" .ErrConfirmPassword)
+@endcomponent
+</div>
+<button type="submit" class="sm">Parolayı Değiştir</button></form>
   @endif
   @if(.CanDelete)
-<form g-submit="user.delete" data-confirm="Bu kullanıcı yazılımsal olarak silinecek. Devam edilsin mi?" data-confirm-title="Kullanıcıyı sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç"><h3>Tehlikeli bölge</h3>
+<form g-submit="user.delete" class="account-settings-span" data-confirm="Bu kullanıcı yazılımsal olarak silinecek. Devam edilsin mi?" data-confirm-title="Kullanıcıyı sil" data-confirm-ok="Evet, sil" data-confirm-cancel="Vazgeç"><h3>Tehlikeli bölge</h3>
 <p class="muted">Bu işlem kullanıcıyı yazılımsal olarak siler.</p>
-<button type="submit" class="danger">Kullanıcıyı Sil</button></form>
+<button type="submit" class="danger sm">Kullanıcıyı Sil</button></form>
   @endif
+</div>
 @endif
 </div>
 @endif

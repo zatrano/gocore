@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	appauth "github.com/zatrano/gocore/internal/application/auth"
 	appauthz "github.com/zatrano/gocore/internal/application/authz"
 	appuser "github.com/zatrano/gocore/internal/application/user"
 	"github.com/zatrano/gocore/pkg/pagination"
@@ -291,6 +292,11 @@ type userChangePhoneForm struct {
 	Phone string `form:"phone" validate:"omitempty,phone" sanitize:"phone"`
 }
 
+type userSetPasswordForm struct {
+	NewPassword     string `form:"new_password" validate:"required,min=8,max=128"`
+	ConfirmPassword string `form:"confirm_password" validate:"required,min=8,max=128"`
+}
+
 type userShowPerms struct {
 	CanReadUser         bool
 	CanChangeRole       bool
@@ -409,10 +415,12 @@ func (c *userShowController) Render(p *Page) (string, error) {
 		"ProfileName":         c.profile.Name,
 		"ProfileEmail":        c.profile.Email,
 		"ProfilePhone":        c.profile.Phone,
-		"ErrRole":             viewFieldError(c.fieldErrors, "role"),
-		"ErrName":             viewFieldError(c.fieldErrors, "name"),
-		"ErrEmail":            viewFieldError(c.fieldErrors, "email"),
-		"ErrPhone":            viewFieldError(c.fieldErrors, "phone"),
+		"ErrRole":            viewFieldError(c.fieldErrors, "role"),
+		"ErrName":            viewFieldError(c.fieldErrors, "name"),
+		"ErrEmail":           viewFieldError(c.fieldErrors, "email"),
+		"ErrPhone":           viewFieldError(c.fieldErrors, "phone"),
+		"ErrNewPassword":     viewFieldError(c.fieldErrors, "new_password"),
+		"ErrConfirmPassword": viewFieldError(c.fieldErrors, "confirm_password"),
 	}
 	return p.RenderView("pages.user_show", data)
 }
@@ -520,6 +528,37 @@ func (c *userShowController) HandleEvent(ctx context.Context, p *Page, event str
 		}
 		_ = c.reload(ctx, p)
 		p.Notice = "telefon numarası güncellendi"
+
+	case "user.set_password":
+		if err := requireAccess(access.CanChangeProfileAny(ctx, actorRole(p), actorID(p), id)); err != nil {
+			p.Error = accountDisplayErr(err)
+			return nil
+		}
+		req := userSetPasswordForm{
+			NewPassword:     payloadString(payload, "new_password"),
+			ConfirmPassword: payloadString(payload, "confirm_password"),
+		}
+		if err := validateDeps(p, &req); err != nil {
+			c.fieldErrors = accountFieldErrors(ctx, err)
+			p.Error = accountDisplayErr(err)
+			return nil
+		}
+		if req.NewPassword != req.ConfirmPassword {
+			c.fieldErrors = map[string]string{"confirm_password": "parolalar eşleşmiyor"}
+			p.Error = "parolalar eşleşmiyor"
+			return nil
+		}
+		if p.Deps.Auth == nil {
+			return errors.New("şifre değiştirme servisi yapılandırılmamış")
+		}
+		if err := p.Deps.Auth.AdminSetPassword(ctx, appauth.AdminSetPasswordCommand{
+			UserID: id, NewPassword: req.NewPassword,
+		}); err != nil {
+			p.Error = accountDisplayErr(err)
+			return nil
+		}
+		_ = c.reload(ctx, p)
+		p.Notice = "kullanıcı parolası güncellendi"
 
 	case "user.activate":
 		if err := requireAccess(access.CanActivate(ctx, actorRole(p))); err != nil {

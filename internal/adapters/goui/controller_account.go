@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"strconv"
 	"strings"
 
@@ -261,7 +262,8 @@ func (c *mfaController) Render(p *Page) (string, error) {
 		"ErrCode":           viewFieldError(c.fieldErrors, "code"),
 	}
 	if c.setup != nil {
-		data["QRDataURI"] = c.setup.QRDataURI
+		// html/template src bağlamında data: URI'leri engeller; template.URL güvenli işaretler.
+		data["QRDataURI"] = template.URL(c.setup.QRDataURI)
 		data["Secret"] = c.setup.Secret
 		data["URI"] = c.setup.URI
 	}
