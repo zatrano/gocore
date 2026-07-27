@@ -1,4 +1,4 @@
-@props(SiteKey string = "")
+@props(SiteKey string = "", ResetKey string = "")
 @if(.Props.SiteKey)
-<div class="cf-turnstile" data-sitekey="{{ .Props.SiteKey }}"></div>
+<div class="cf-turnstile" data-sitekey="{{ .Props.SiteKey }}" data-goui-ts="{{ .Props.ResetKey }}"></div>
 @endif

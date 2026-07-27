@@ -11,7 +11,7 @@
 @endcomponent
 @component("components.input", dict "ID" "register-password" "Name" "password" "Label" .PasswordLabel "Type" "password" "Value" "" "Required" true "Error" .ErrPassword)
 @endcomponent
-@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey "ResetKey" .TurnstileResetKey)
 @endcomponent
     <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
   </form>

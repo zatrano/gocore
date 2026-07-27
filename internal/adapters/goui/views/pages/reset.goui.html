@@ -4,7 +4,7 @@
     <input type="hidden" name="token" value="{{ .Token }}">
 @component("components.input", dict "ID" "reset-new-password" "Name" "new_password" "Label" .PasswordLabel "Type" "password" "Value" "" "Required" true "Error" .ErrNewPassword)
 @endcomponent
-@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey "ResetKey" .TurnstileResetKey)
 @endcomponent
     <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
   </form>

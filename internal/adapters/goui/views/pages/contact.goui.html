@@ -8,7 +8,7 @@
 @endcomponent
 @component("components.textarea", dict "ID" "contact-message" "Name" "message" "Label" .MessageLabel "Value" .Message "Required" true "Error" .ErrMessage)
 @endcomponent
-@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey "ResetKey" .TurnstileResetKey)
 @endcomponent
     <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
   </form>

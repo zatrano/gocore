@@ -97,7 +97,8 @@ func (c *contactController) Render(p *Page) (string, error) {
 		"ErrName":          c.fieldErrors["name"],
 		"ErrEmail":         c.fieldErrors["email"],
 		"ErrMessage":       c.fieldErrors["message"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.contact.submit", "Gönder"),
 		"ReachTitle":       p.T("public.contact.reach_us", "Bize Ulaşın"),
 		"PhoneLabel":       p.T("public.contact.phone", "Telefon"),
@@ -209,7 +210,8 @@ func (c *loginController) Render(p *Page) (string, error) {
 		"Email":            c.email,
 		"ErrEmail":         c.fieldErrors["email"],
 		"ErrPassword":      c.fieldErrors["password"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.auth.login.submit", "Giriş Yap"),
 		"Links": []ViewLink{
 			{Href: "/auth/forgot-password", Label: p.T("public.auth.login.forgot", "Şifremi unuttum")},
@@ -335,7 +337,8 @@ func (c *registerController) Render(p *Page) (string, error) {
 		"ErrEmail":         c.fieldErrors["email"],
 		"ErrPhone":         c.fieldErrors["phone"],
 		"ErrPassword":      c.fieldErrors["password"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.auth.register.submit", "Kayıt Ol"),
 		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.register.login_link", "Giriş yap")}},
 	})
@@ -419,7 +422,8 @@ func (c *forgotController) Render(p *Page) (string, error) {
 		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
 		"Email":            c.email,
 		"ErrEmail":         c.fieldErrors["email"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.auth.forgot.submit", "Sıfırlama Bağlantısı Gönder"),
 		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.forgot.back", "Girişe dön")}},
 	})
@@ -483,7 +487,8 @@ func (c *resetController) Render(p *Page) (string, error) {
 		"Token":            c.token,
 		"PasswordLabel":    p.T("public.auth.field.new_password", "Yeni Parola"),
 		"ErrNewPassword":   c.fieldErrors["new_password"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.auth.reset.submit", "Parolayı Sıfırla"),
 		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.reset.back", "Giriş sayfasına dön")}},
 	})
@@ -565,7 +570,8 @@ func (c *verifyController) Render(p *Page) (string, error) {
 		"EmailLabel":       p.T("public.auth.field.email", "E-posta"),
 		"Email":            c.email,
 		"ErrEmail":         c.fieldErrors["email"],
-		"TurnstileSiteKey": turnstileSiteKey(p),
+		"TurnstileSiteKey":  turnstileSiteKey(p),
+		"TurnstileResetKey": turnstileResetKey(p),
 		"SubmitLabel":      p.T("public.auth.verify.submit", "Doğrulama E-postası Gönder"),
 		"Links":            []ViewLink{{Href: "/auth/login", Label: p.T("public.auth.verify.back", "Giriş sayfasına dön")}},
 	})
@@ -641,6 +647,13 @@ func turnstileSiteKey(p *Page) string {
 		return ""
 	}
 	return p.Deps.TurnstileSiteKey
+}
+
+func turnstileResetKey(p *Page) string {
+	if p == nil || !viewTurnstileEnabled(p) {
+		return ""
+	}
+	return p.EventNonce
 }
 
 func turnstileToken(payload map[string]any) string {

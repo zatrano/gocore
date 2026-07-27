@@ -375,7 +375,7 @@ func sendShell(c fiber.Ctx, opts shellOpts) error {
 	observerTurnstile := ""
 	if opts.TurnstileEnabled {
 		turnstileHead = `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>`
-		turnstileRuntime = `const mountTurnstile=()=>{if(!window.turnstile)return;document.querySelectorAll(".cf-turnstile:not([data-goui-rendered])").forEach(el=>{window.turnstile.render(el,{sitekey:el.dataset.sitekey});el.dataset.gouiRendered="1";});};setInterval(mountTurnstile,500);`
+		turnstileRuntime = `const mountTurnstile=()=>{if(!window.turnstile)return;document.querySelectorAll(".cf-turnstile").forEach(el=>{const stamp=el.getAttribute("data-goui-ts")||"";const intact=!!el.querySelector("iframe");if(el.dataset.gouiMountedTs===stamp&&intact&&el.dataset.gouiRendered==="1")return;if(el.dataset.gouiWidgetId!=null){try{window.turnstile.remove(Number(el.dataset.gouiWidgetId));}catch{}delete el.dataset.gouiWidgetId;}el.replaceChildren();try{const id=window.turnstile.render(el,{sitekey:el.dataset.sitekey});el.dataset.gouiRendered="1";el.dataset.gouiMountedTs=stamp;if(id!=null)el.dataset.gouiWidgetId=String(id);}catch{}});};setInterval(mountTurnstile,500);`
 		observerTurnstile = `mountTurnstile();`
 	}
 	alertRuntime := `const showAlert=(payload)=>{if(!window.Swal)return;const kind=(payload&&payload.kind)||"info";const text=(payload&&payload.text)||"";if(!text)return;const icons={success:"success",error:"error",warning:"warning",info:"info"};const titles={success:"Başarılı",error:"Hata",warning:"Uyarı",info:"Bilgi"};const icon=icons[kind]||"info";Swal.fire({icon,title:titles[kind]||"Bilgi",text,confirmButtonText:"Tamam",confirmButtonColor:kind==="error"?"#FF5A6B":"#11A8F4"});};` +

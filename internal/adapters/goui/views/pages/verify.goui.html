@@ -9,7 +9,7 @@
   <form g-submit="verify.resend" class="stack">
 @component("components.input", dict "ID" "verify-email" "Name" "email" "Label" .EmailLabel "Type" "email" "Value" .Email "Required" true "Error" .ErrEmail)
 @endcomponent
-@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey)
+@component("components.turnstile", dict "SiteKey" .TurnstileSiteKey "ResetKey" .TurnstileResetKey)
 @endcomponent
     <button type="submit" class="btn primary">{{ .SubmitLabel }}</button>
   </form>
