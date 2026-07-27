@@ -415,12 +415,12 @@ func (c *userShowController) Render(p *Page) (string, error) {
 		"ProfileName":         c.profile.Name,
 		"ProfileEmail":        c.profile.Email,
 		"ProfilePhone":        c.profile.Phone,
-		"ErrRole":            viewFieldError(c.fieldErrors, "role"),
-		"ErrName":            viewFieldError(c.fieldErrors, "name"),
-		"ErrEmail":           viewFieldError(c.fieldErrors, "email"),
-		"ErrPhone":           viewFieldError(c.fieldErrors, "phone"),
-		"ErrNewPassword":     viewFieldError(c.fieldErrors, "new_password"),
-		"ErrConfirmPassword": viewFieldError(c.fieldErrors, "confirm_password"),
+		"ErrRole":             viewFieldError(c.fieldErrors, "role"),
+		"ErrName":             viewFieldError(c.fieldErrors, "name"),
+		"ErrEmail":            viewFieldError(c.fieldErrors, "email"),
+		"ErrPhone":            viewFieldError(c.fieldErrors, "phone"),
+		"ErrNewPassword":      viewFieldError(c.fieldErrors, "new_password"),
+		"ErrConfirmPassword":  viewFieldError(c.fieldErrors, "confirm_password"),
 	}
 	return p.RenderView("pages.user_show", data)
 }

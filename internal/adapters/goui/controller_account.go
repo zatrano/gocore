@@ -263,7 +263,8 @@ func (c *mfaController) Render(p *Page) (string, error) {
 	}
 	if c.setup != nil {
 		// html/template src bağlamında data: URI'leri engeller; template.URL güvenli işaretler.
-		data["QRDataURI"] = template.URL(c.setup.QRDataURI)
+		// QRDataURI sunucuda TOTP kütüphanesi tarafından üretilir (kullanıcı girdisi değil).
+		data["QRDataURI"] = template.URL(c.setup.QRDataURI) // #nosec G203
 		data["Secret"] = c.setup.Secret
 		data["URI"] = c.setup.URI
 	}
