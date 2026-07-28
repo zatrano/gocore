@@ -1,5 +1,9 @@
 # GoCore
 
+<p align="center">
+  <img src="docs/assets/gocore-readme-banner.png" alt="GoCore — Enterprise Go Platform" width="100%">
+</p>
+
 Enterprise Go platform built with **Clean Architecture**, **Hexagonal design**, **DDD**, and **CQRS**.
 
 One Fiber process serves both a versioned JSON REST API (`/api/v1`) and a **GoUI** admin panel. Domain and application layers are shared; HTTP handlers and GoUI controllers are thin transports wired in `internal/bootstrap`.
