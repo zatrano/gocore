@@ -1,7 +1,7 @@
 # GoCore
 
 <p align="center">
-  <img src="docs/assets/gocore-readme-banner.png" alt="GoCore — Enterprise Go Platform" width="100%">
+  <img src="docs/assets/gocore-banner.png" alt="GoCore — Enterprise Go Platform" width="100%">
 </p>
 
 Enterprise Go platform built with **Clean Architecture**, **Hexagonal design**, **DDD**, and **CQRS**.
